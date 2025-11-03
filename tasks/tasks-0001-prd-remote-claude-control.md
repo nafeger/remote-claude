@@ -42,10 +42,16 @@ Based on PRD: `0001-prd-remote-claude-control.md`
 - `src/tmux/executor.ts` - tmux 명령 실행 유틸리티
 - `src/tmux/parser.ts` - 출력 파싱 (ANSI 코드 제거, 긴 출력 처리)
 
+### Job Queue & State (Task 5.0 완료)
+- `src/queue/queue.ts` - Job Queue 클래스 (프로젝트별 FIFO)
+- `src/queue/orchestrator.ts` - 작업 실행 오케스트레이터
+- `src/state/manager.ts` - State Manager 클래스 (state.json 관리)
+- `src/state/recovery.ts` - 상태 복구 기능
+
 ### Notes
 
 - 아직 생성되지 않은 파일: src/index.ts (메인 엔트리포인트), README.md, jest.config.js
-- Job Queue와 State Manager는 Task 5.0에서 구현 예정
+- 메인 애플리케이션은 모든 컴포넌트를 통합하여 실행 가능한 Bot을 만드는 작업
 
 ## Tasks
 
@@ -89,15 +95,15 @@ Based on PRD: `0001-prd-remote-claude-control.md`
   - [x] 4.7 /run 명령어 구현 (스니펫 실행, 존재 여부 확인) - 기본 구현, Task 5.0에서 큐 통합
   - [x] 4.8 /ask 명령어 구현 (즉석 프롬프트 실행) - 기본 구현, Task 5.0에서 큐 통합
 
-- [ ] 5.0 대화형 워크플로우 및 작업 큐 처리 구현
-  - [ ] 5.1 Job Queue 클래스 구현 (프로젝트별 FIFO 큐, 작업 추가/제거/확인)
-  - [ ] 5.2 State Manager 구현 (세션 상태 저장/로드, state.json 관리)
-  - [ ] 5.3 작업 실행 오케스트레이터 (큐에서 작업 가져오기, tmux로 실행, 결과 처리)
-  - [ ] 5.4 대화형 응답 처리 (y/n 입력 감지, 다음 단계 또는 중단)
-  - [ ] 5.5 타임아웃 관리 (30분 무응답 시 세션 종료, 알림)
-  - [ ] 5.6 /cancel 명령어 구현 (현재 실행 중인 작업 취소)
-  - [ ] 5.7 /status 명령어 확장 (큐 상태, 실행 중인 작업, 대기 중인 작업 표시)
-  - [ ] 5.8 상태 복구 기능 (시스템 재시작 시 state.json에서 복구)
+- [x] 5.0 대화형 워크플로우 및 작업 큐 처리 구현
+  - [x] 5.1 Job Queue 클래스 구현 (프로젝트별 FIFO 큐, 작업 추가/제거/확인)
+  - [x] 5.2 State Manager 구현 (세션 상태 저장/로드, state.json 관리)
+  - [x] 5.3 작업 실행 오케스트레이터 (큐에서 작업 가져오기, tmux로 실행, 결과 처리)
+  - [x] 5.4 대화형 응답 처리 (y/n 입력 감지, 다음 단계 또는 중단) - 오케스트레이터에 통합
+  - [x] 5.5 타임아웃 관리 (30분 무응답 시 세션 종료, 알림) - 오케스트레이터에 통합
+  - [x] 5.6 /cancel 명령어 구현 (현재 실행 중인 작업 취소)
+  - [x] 5.7 /status 명령어 확장 (큐 상태, 실행 중인 작업, 대기 중인 작업 표시)
+  - [x] 5.8 상태 복구 기능 (시스템 재시작 시 state.json에서 복구)
 
 ## Notes
 

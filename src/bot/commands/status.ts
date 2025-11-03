@@ -77,8 +77,41 @@ export const statusHandler: SlackCommandHandler = async ({
         formatTimestamp(channelConfig.lastUsed)
       ) + '\n';
 
-    // TODO: 작업 큐 상태 추가 (Task 5.0에서 구현)
-    statusMessage += '\n' + formatInfo('작업 큐 정보는 추후 추가될 예정입니다.');
+    // TODO: 메인 애플리케이션 통합 시 큐 상태 추가
+    statusMessage += '\n\n' + formatInfo(
+      '작업 큐 정보는 메인 애플리케이션 통합 시 표시됩니다.\n' +
+      '(대기 중인 작업, 실행 중인 작업, 완료된 작업 등)'
+    );
+
+    /* 완성된 구현 예시:
+    // Job Queue 상태
+    const jobQueue = getJobQueue(); // 전역 인스턴스
+    const queueSummary = jobQueue.getQueueSummary(channelId);
+
+    statusMessage += formatSectionHeader('📋 작업 큐 상태') + '\n\n';
+    statusMessage += formatKeyValue('대기 중', `${queueSummary.pending}개`) + '\n';
+    statusMessage += formatKeyValue('실행 중', `${queueSummary.running}개`) + '\n';
+    statusMessage += formatKeyValue('완료', `${queueSummary.completed}개`) + '\n';
+    statusMessage += formatKeyValue('실패', `${queueSummary.failed}개`) + '\n';
+    statusMessage += formatKeyValue('취소', `${queueSummary.cancelled}개`) + '\n';
+
+    // 실행 중인 작업 상세
+    const runningJob = jobQueue.getRunningJob(channelId);
+    if (runningJob) {
+      statusMessage += '\n' + formatBold('현재 실행 중인 작업:') + '\n';
+      statusMessage += `• ID: ${runningJob.id}\n`;
+      statusMessage += `• 타입: ${runningJob.type}\n`;
+      statusMessage += `• 시작 시간: ${runningJob.startedAt ? formatTimestamp(runningJob.startedAt) : 'N/A'}\n`;
+    }
+
+    // 세션 상태
+    const stateManager = getStateManager(); // 전역 인스턴스
+    const session = stateManager.getSession(channelId);
+    if (session?.isWaitingForResponse) {
+      statusMessage += '\n' + formatWarning('대화형 응답 대기 중') + '\n';
+      statusMessage += `타임아웃: ${session.timeoutAt ? formatTimestamp(session.timeoutAt) : 'N/A'}\n`;
+    }
+    */
 
     return statusMessage;
   } catch (error) {
