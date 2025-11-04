@@ -17,7 +17,27 @@ import {
   formatBold,
   formatCodeBlock,
   formatOutputSummary,
+  formatDslGuide,
+  formatInteractivePromptHelp,
+  formatDslMixedCharError,
+  formatDslExecutionResult,
+  formatDslExecutionError,
 } from '../bot/formatters';
+import {
+  parseInteractiveCommand,
+  ParseResult,
+  KEY_CHARS,
+} from '../dsl/parser';
+import {
+  executeCommandSequence,
+  capturePane,
+} from '../tmux/executor';
+import {
+  processCaptureResult,
+  detectAnyInteractivePrompt,
+  formatDslResponse,
+  InteractivePromptInfo,
+} from '../tmux/parser';
 
 /**
  * Job Orchestrator 클래스
@@ -361,5 +381,236 @@ export class JobOrchestrator {
    */
   public getRunningJob(channelId: string): Job | undefined {
     return this.runningJobs.get(channelId);
+  }
+
+  /**
+   * DSL 명령 처리
+   * Handle DSL command (backtick-based commands)
+   *
+   * @param channelId - Slack channel ID
+   * @param channelConfig - Channel configuration
+   * @param message - User message with DSL commands
+   * @returns Promise<void>
+   *
+   * 처리 흐름 (Processing flow):
+   * 1. 백틱 명령 파싱 (Parse backtick commands)
+   * 2. 명령 시퀀스 실행 (Execute command sequence)
+   * 3. 화면 캡처 (Capture screen)
+   * 4. 인터랙티브 프롬프트 감지 (Detect interactive prompt)
+   * 5. Slack에 결과 전송 (Send result to Slack)
+   */
+  public async handleDslCommand(
+    channelId: string,
+    channelConfig: ChannelConfig,
+    message: string
+  ): Promise<void> {
+    const logger = getLogger();
+
+    try {
+      // 1. 백틱 명령 파싱
+      // Parse backtick commands
+      const parseResult: ParseResult = parseInteractiveCommand(message);
+
+      if (!parseResult.success) {
+        // 파싱 에러 (혼합 문자 에러 등)
+        // Parsing error (mixed character error, etc.)
+        await this.sendDslParseError(channelId, parseResult.error!);
+        return;
+      }
+
+      if (parseResult.segments.length === 0) {
+        logger.debug('No DSL commands found in message');
+        return;
+      }
+
+      // 2. 명령 시퀀스 실행
+      // Execute command sequence
+      const executeResult = await executeCommandSequence(
+        channelConfig.tmuxSession,
+        parseResult.segments
+      );
+
+      if (!executeResult.success) {
+        // 실행 에러
+        // Execution error
+        await this.sendDslExecutionErrorMessage(
+          channelId,
+          executeResult.error || 'Unknown error'
+        );
+        return;
+      }
+
+      // 3. 화면 캡처
+      // Capture screen
+      const captureResult = await capturePane(channelConfig.tmuxSession);
+
+      if (!captureResult.success) {
+        await this.sendDslExecutionErrorMessage(
+          channelId,
+          captureResult.error || 'Screen capture failed'
+        );
+        return;
+      }
+
+      // 4. 화면 출력 처리 및 인터랙티브 프롬프트 감지
+      // Process output and detect interactive prompt
+      const processedOutput = processCaptureResult(captureResult.output || '');
+      const promptInfo = detectAnyInteractivePrompt(processedOutput.fullOutput);
+
+      // 5. Slack에 결과 전송
+      // Send result to Slack
+      await this.sendDslResponseMessage(
+        channelId,
+        processedOutput,
+        parseResult.segments.length,
+        promptInfo
+      );
+
+      // 인터랙티브 프롬프트가 감지되면 대기 상태로 전환
+      // If interactive prompt detected, enter waiting state
+      if (promptInfo) {
+        this.stateManager.setWaitingForResponse(channelId, true, 30); // 30분 타임아웃
+        this.stateManager.setLastOutput(channelId, processedOutput.fullOutput);
+      }
+    } catch (error) {
+      logger.error(`DSL command handling failed: ${error}`);
+      await this.sendDslExecutionErrorMessage(
+        channelId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
+  }
+
+  /**
+   * DSL 응답 메시지 전송
+   * Send DSL response message with screen capture and guide
+   *
+   * @param channelId - Slack channel ID
+   * @param captureResult - Processed capture result
+   * @param commandCount - Number of commands executed
+   * @param promptInfo - Interactive prompt info (if detected)
+   */
+  private async sendDslResponseMessage(
+    channelId: string,
+    captureResult: { fullOutput: string; summary: string; isTruncated: boolean; totalLines: number },
+    commandCount: number,
+    promptInfo: InteractivePromptInfo | null
+  ): Promise<void> {
+    // formatDslResponse from tmux/parser.ts
+    const formattedOutput = formatDslResponse(captureResult, promptInfo);
+
+    let message =
+      formatSuccess(formatBold('DSL 명령 실행 완료')) +
+      '\n\n' +
+      `${formatBold('실행된 명령')}: ${commandCount}개\n` +
+      `${formatBold('출력 라인 수')}: ${captureResult.totalLines}줄` +
+      (captureResult.isTruncated ? ' (요약됨)' : '') +
+      '\n\n' +
+      formatBold('화면 출력:') +
+      '\n' +
+      formattedOutput;
+
+    // 인터랙티브 프롬프트 타입별 도움말 추가
+    // Add prompt-specific help if detected
+    if (promptInfo) {
+      message += '\n\n' + formatInteractivePromptHelp(promptInfo.type);
+    }
+
+    try {
+      await this.slackApp.client.chat.postMessage({
+        channel: channelId,
+        text: message,
+      });
+    } catch (error) {
+      getLogger().error(`Failed to send DSL response message: ${error}`);
+    }
+  }
+
+  /**
+   * DSL 파싱 에러 메시지 전송
+   * Send DSL parsing error message (e.g., mixed character error)
+   *
+   * @param channelId - Slack channel ID
+   * @param error - Parse error
+   */
+  private async sendDslParseError(channelId: string, error: Error): Promise<void> {
+    // 혼합 문자 에러인 경우 특별 처리
+    // Special handling for mixed character error
+    const errorMessage = error.message;
+    const isMixedCharError = errorMessage.includes('백틱 내용이 애매합니다');
+
+    let message: string;
+
+    if (isMixedCharError) {
+      // 에러 메시지에서 키 문자와 일반 문자 추출
+      // Extract key chars and non-key chars from error message
+      const keyCharsMatch = errorMessage.match(/'([^']+)' 는 키 매핑 문자/);
+      const nonKeyCharsMatch = errorMessage.match(/'([^']+)'는 아닙니다/);
+
+      if (keyCharsMatch && nonKeyCharsMatch) {
+        const keyChars = keyCharsMatch[1].split("', '");
+        const nonKeyChars = nonKeyCharsMatch[1].split("', '");
+        message = formatDslMixedCharError(keyChars, nonKeyChars);
+      } else {
+        message = formatError(formatBold('DSL 파싱 에러')) + '\n\n' + errorMessage;
+      }
+    } else {
+      message = formatError(formatBold('DSL 파싱 에러')) + '\n\n' + errorMessage;
+    }
+
+    // DSL 가이드 추가
+    // Add DSL guide
+    message += '\n\n' + formatDslGuide();
+
+    try {
+      await this.slackApp.client.chat.postMessage({
+        channel: channelId,
+        text: message,
+      });
+    } catch (error) {
+      getLogger().error(`Failed to send DSL parse error: ${error}`);
+    }
+  }
+
+  /**
+   * DSL 실행 에러 메시지 전송
+   * Send DSL execution error message
+   *
+   * @param channelId - Slack channel ID
+   * @param error - Execution error message
+   */
+  private async sendDslExecutionErrorMessage(
+    channelId: string,
+    error: string
+  ): Promise<void> {
+    const message = formatDslExecutionError(error);
+
+    try {
+      await this.slackApp.client.chat.postMessage({
+        channel: channelId,
+        text: message,
+      });
+    } catch (error) {
+      getLogger().error(`Failed to send DSL execution error: ${error}`);
+    }
+  }
+
+  /**
+   * DSL 가이드 메시지 전송
+   * Send DSL usage guide message
+   *
+   * @param channelId - Slack channel ID
+   */
+  public async sendDslGuideMessage(channelId: string): Promise<void> {
+    const message = formatDslGuide();
+
+    try {
+      await this.slackApp.client.chat.postMessage({
+        channel: channelId,
+        text: message,
+      });
+    } catch (error) {
+      getLogger().error(`Failed to send DSL guide: ${error}`);
+    }
   }
 }

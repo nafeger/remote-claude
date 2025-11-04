@@ -265,3 +265,150 @@ export function formatErrorStack(error: Error): string {
     formatCodeBlock(error.stack || error.message)
   );
 }
+
+/**
+ * DSL 명령 사용 가이드 포맷팅
+ * Format DSL command usage guide
+ *
+ * 백틱 기반 DSL 명령 사용법을 안내하는 메시지
+ */
+export function formatDslGuide(): string {
+  const guide = [
+    formatBold('💡 DSL 명령 사용법'),
+    '',
+    '백틱(`)으로 감싸서 키 명령이나 텍스트를 전송할 수 있습니다:',
+    '',
+    formatBold('키 명령:'),
+    `• ${formatInlineCode('ddd')} → Down 키 3번`,
+    `• ${formatInlineCode('uuu')} → Up 키 3번`,
+    `• ${formatInlineCode('e')} → Enter 키`,
+    `• ${formatInlineCode('r')}, ${formatInlineCode('l')} → Right, Left 키`,
+    '',
+    formatBold('텍스트 입력:'),
+    `• ${formatInlineCode('my-app')} → "my-app" 텍스트 입력`,
+    `• ${formatInlineCode('console.log()')} → "console.log()" 텍스트 입력`,
+    '',
+    formatBold('혼합 사용:'),
+    `• ${formatInlineCode('ddd')} my-app ${formatInlineCode('e')} → Down 3번 + "my-app" + Enter`,
+    '',
+    formatWarning('주의: 키 문자(r,l,u,d,e)와 일반 문자를 같은 백틱 안에 섞으면 에러가 발생합니다.'),
+  ];
+
+  return guide.join('\n');
+}
+
+/**
+ * 인터랙티브 프롬프트 타입별 도움말 포맷팅
+ * Format interactive prompt help by type
+ *
+ * @param type - 프롬프트 타입 (yesno, selection, numbered)
+ * @returns Formatted help message
+ */
+export function formatInteractivePromptHelp(
+  type: 'yesno' | 'selection' | 'numbered'
+): string {
+  const helpMessages = {
+    yesno: [
+      '💡 [y/n] 프롬프트가 감지되었습니다.',
+      '',
+      formatBold('응답 방법:'),
+      `• ${formatInlineCode('y')} - Yes`,
+      `• ${formatInlineCode('n')} - No`,
+    ],
+    selection: [
+      '💡 선택 메뉴가 감지되었습니다.',
+      '',
+      formatBold('조작 방법:'),
+      `• ${formatInlineCode('u')} / ${formatInlineCode('d')} - 위/아래로 이동`,
+      `• ${formatInlineCode('l')} / ${formatInlineCode('r')} - 왼쪽/오른쪽으로 이동`,
+      `• ${formatInlineCode('e')} - 선택 확인 (Enter)`,
+      '',
+      formatItalic('예시: ' + formatInlineCode('ddd') + ' (3번 아래로) + ' + formatInlineCode('e') + ' (선택)'),
+    ],
+    numbered: [
+      '💡 번호 옵션이 감지되었습니다.',
+      '',
+      formatBold('응답 방법:'),
+      `• 원하는 번호 입력 + ${formatInlineCode('e')} (Enter)`,
+      '',
+      formatItalic('예시: ' + formatInlineCode('2') + ' + ' + formatInlineCode('e') + ' (2번 옵션 선택)'),
+    ],
+  };
+
+  return helpMessages[type].join('\n');
+}
+
+/**
+ * DSL 혼합 문자 에러 포맷팅
+ * Format DSL mixed character error
+ *
+ * @param keyChars - 감지된 키 문자 배열
+ * @param nonKeyChars - 감지된 일반 문자 배열
+ * @returns Formatted error message with guide
+ */
+export function formatDslMixedCharError(keyChars: string[], nonKeyChars: string[]): string {
+  const errorMsg = [
+    formatError(formatBold('혼합 문자 에러')),
+    '',
+    '백틱 내용에 키 문자와 일반 문자가 섞여있습니다:',
+    '',
+    formatKeyValue('키 문자', keyChars.map((c) => formatInlineCode(c)).join(', ')),
+    formatKeyValue('일반 문자', nonKeyChars.map((c) => formatInlineCode(c)).join(', ')),
+    '',
+    formatBold('해결 방법:'),
+    '• 키 명령과 텍스트를 각각 다른 백틱으로 감싸세요',
+    '',
+    formatBold('올바른 예시:'),
+    `• ${formatInlineCode('ddd')} text ${formatInlineCode('e')} ✅`,
+    '',
+    formatBold('잘못된 예시:'),
+    `• ${formatInlineCode('dddtext')} ❌ (키 문자와 일반 문자 혼합)`,
+  ];
+
+  return errorMsg.join('\n');
+}
+
+/**
+ * DSL 명령 실행 결과 포맷팅
+ * Format DSL command execution result
+ *
+ * @param output - tmux 캡처 출력
+ * @param commandCount - 실행된 명령 개수
+ * @returns Formatted result message
+ */
+export function formatDslExecutionResult(output: string, commandCount: number): string {
+  const result = [
+    formatSuccess(formatBold('명령 실행 완료')),
+    '',
+    formatKeyValue('실행된 명령', `${commandCount}개`),
+    '',
+    formatBold('화면 출력:'),
+    formatCodeBlock(output),
+  ];
+
+  return result.join('\n');
+}
+
+/**
+ * DSL 명령 실행 에러 포맷팅
+ * Format DSL command execution error
+ *
+ * @param error - 에러 메시지
+ * @param failedCommand - 실패한 명령 (optional)
+ * @returns Formatted error message
+ */
+export function formatDslExecutionError(error: string, failedCommand?: string): string {
+  const errorMsg = [
+    formatError(formatBold('명령 실행 실패')),
+    '',
+    formatKeyValue('에러', error),
+  ];
+
+  if (failedCommand) {
+    errorMsg.push('', formatKeyValue('실패한 명령', formatInlineCode(failedCommand)));
+  }
+
+  errorMsg.push('', formatInfo('tmux 세션 상태를 확인하고 다시 시도해주세요.'));
+
+  return errorMsg.join('\n');
+}

@@ -64,7 +64,7 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
 
 ## 태스크
 
-- [ ] 1.0 백틱 명령 파싱 및 분류 로직 구현
+- [x] 1.0 백틱 명령 파싱 및 분류 로직 구현
   - [x] 1.1 `src/dsl/parser.ts` 파일 생성 및 기본 구조 작성
   - [x] 1.2 `isKeySequence()` 함수 구현 - 백틱 내용이 순수 키 시퀀스인지 판별
   - [x] 1.3 키 매핑 정의 (r→Right, l→Left, u→Up, d→Down, e→Enter) - Task 1.1에서 이미 완료
@@ -74,15 +74,15 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 1.7 에러 객체 생성 및 명확한 가이드 메시지 포함 - Task 1.2에서 이미 구현됨
 
 - [ ] 2.0 tmux 특수 키 전송 및 화면 캡처 구현
-  - [ ] 2.1 `src/tmux/executor.ts`에 `sendArrowKey()` 함수 추가
-  - [ ] 2.2 `sendEnter()` 함수 추가
-  - [ ] 2.3 `executeCommandSequence()` 함수 구현 - 명령 배열을 순차 실행
-  - [ ] 2.4 키 전송 간 지연 구현 (100ms)
-  - [ ] 2.5 최종 명령 후 대기 시간 구현 (500ms)
-  - [ ] 2.6 `src/tmux/parser.ts`에 화면 캡처 로직 확장
-  - [ ] 2.7 ANSI 이스케이프 코드 제거 로직 구현
-  - [ ] 2.8 `src/bot/formatters.ts`에 DSL 응답 메시지 포맷터 추가
-  - [ ] 2.9 Slack 메시지 전송 통합 (캡처된 화면 + 도움말)
+  - [x] 2.1 `src/tmux/executor.ts`에 `sendArrowKey()` 함수 추가
+  - [x] 2.2 `sendEnter()` 함수 추가 - 이미 구현되어 있음
+  - [x] 2.3 `executeCommandSequence()` 함수 구현 - 명령 배열을 순차 실행
+  - [x] 2.4 키 전송 간 지연 구현 (100ms) - Task 2.3에 통합됨
+  - [x] 2.5 최종 명령 후 대기 시간 구현 (500ms) - Task 2.3에 통합됨
+  - [x] 2.6 `src/tmux/parser.ts`에 화면 캡처 로직 확장 - 선택 메뉴, 번호 옵션, 종합 감지 추가
+  - [x] 2.7 ANSI 이스케이프 코드 제거 로직 구현 - 이미 구현되어 있음, DSL 포맷터 추가
+  - [x] 2.8 `src/bot/formatters.ts`에 DSL 응답 메시지 포맷터 추가 - 5개 함수 추가
+  - [x] 2.9 Slack 메시지 전송 통합 (캡처된 화면 + 도움말) - JobOrchestrator에 5개 함수 추가
 
 - [ ] 3.0 인터랙티브 프롬프트 자동 감지 구현
   - [ ] 3.1 `src/dsl/detector.ts` 파일 생성

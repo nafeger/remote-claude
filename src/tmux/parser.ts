@@ -196,3 +196,190 @@ export function detectCompletion(output: string): boolean {
 
   return completionPatterns.some((pattern) => pattern.test(lastLines));
 }
+
+/**
+ * 선택 메뉴 감지 (❯ 마커)
+ * Detect selection menu with ❯ marker
+ *
+ * 선택 가능한 메뉴가 있는지 감지:
+ * - ❯ 마커가 있는 줄
+ * - 여러 옵션이 나열된 경우
+ *
+ * @param output - tmux 캡처 출력
+ * @returns true if selection menu detected
+ *
+ * 예시 (Examples):
+ * ```
+ * ❯ Option 1
+ *   Option 2
+ *   Option 3
+ * ```
+ */
+export function detectSelectionMenu(output: string): boolean {
+  const cleaned = cleanOutput(output);
+
+  // ❯ 마커가 있는 줄 찾기
+  // Look for lines with ❯ marker
+  const hasMarker = /❯/.test(cleaned);
+
+  // > 기호로 선택 표시하는 경우도 감지
+  // Also detect > symbol for selection
+  const hasArrow = /^\s*>\s+/m.test(cleaned);
+
+  return hasMarker || hasArrow;
+}
+
+/**
+ * 번호 옵션 메뉴 감지
+ * Detect numbered option menu
+ *
+ * 번호로 선택 가능한 메뉴 감지:
+ * - 1., 2., 3. 패턴
+ * - 1), 2), 3) 패턴
+ *
+ * @param output - tmux 캡처 출력
+ * @returns true if numbered menu detected
+ *
+ * 예시 (Examples):
+ * ```
+ * 1. First option
+ * 2. Second option
+ * 3. Third option
+ * ```
+ */
+export function detectNumberedMenu(output: string): boolean {
+  const cleaned = cleanOutput(output);
+  const lines = cleaned.split('\n');
+
+  // 최근 10줄만 확인
+  // Check last 10 lines only
+  const recentLines = lines.slice(-10);
+
+  // 번호 패턴 매칭
+  // Match numbered patterns
+  const numberedPattern = /^\s*(\d+)[.)]\s+/;
+
+  // 최소 2개 이상의 연속된 번호가 있는지 확인
+  // Check if there are at least 2 consecutive numbers
+  let consecutiveCount = 0;
+  let lastNumber = 0;
+
+  for (const line of recentLines) {
+    const match = line.match(numberedPattern);
+    if (match) {
+      const currentNumber = parseInt(match[1], 10);
+
+      // 연속된 번호인지 확인
+      // Check if consecutive
+      if (lastNumber === 0 || currentNumber === lastNumber + 1) {
+        consecutiveCount++;
+        lastNumber = currentNumber;
+
+        if (consecutiveCount >= 2) {
+          return true;
+        }
+      } else {
+        // 연속이 끊어지면 리셋
+        // Reset if not consecutive
+        consecutiveCount = 1;
+        lastNumber = currentNumber;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 인터랙티브 프롬프트 종합 감지
+ * Comprehensive interactive prompt detection
+ *
+ * 모든 종류의 인터랙티브 프롬프트 감지:
+ * - [y/n] 프롬프트
+ * - 선택 메뉴 (❯ 마커)
+ * - 번호 옵션
+ *
+ * @param output - tmux 캡처 출력
+ * @returns Detected prompt type or null
+ */
+export interface InteractivePromptInfo {
+  type: 'yesno' | 'selection' | 'numbered';
+  detected: boolean;
+}
+
+export function detectAnyInteractivePrompt(output: string): InteractivePromptInfo | null {
+  // [y/n] 프롬프트 확인
+  // Check [y/n] prompt
+  if (detectInteractivePrompt(output)) {
+    return {
+      type: 'yesno',
+      detected: true,
+    };
+  }
+
+  // 선택 메뉴 확인
+  // Check selection menu
+  if (detectSelectionMenu(output)) {
+    return {
+      type: 'selection',
+      detected: true,
+    };
+  }
+
+  // 번호 옵션 확인
+  // Check numbered menu
+  if (detectNumberedMenu(output)) {
+    return {
+      type: 'numbered',
+      detected: true,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * DSL 응답 메시지 생성
+ * Generate DSL response message for Slack
+ *
+ * 화면 캡처 결과를 Slack 메시지 형식으로 포맷:
+ * - 코드 블록으로 감싸기
+ * - 프롬프트 타입에 따른 가이드 추가
+ *
+ * @param captureResult - 화면 캡처 결과
+ * @param promptInfo - 감지된 프롬프트 정보 (optional)
+ * @returns Formatted Slack message
+ */
+export function formatDslResponse(
+  captureResult: CaptureResult,
+  promptInfo?: InteractivePromptInfo | null
+): string {
+  let message = '```\n' + captureResult.summary + '\n```';
+
+  // 프롬프트 타입에 따른 가이드 추가
+  // Add guide based on prompt type
+  if (promptInfo) {
+    message += '\n\n';
+
+    switch (promptInfo.type) {
+      case 'yesno':
+        message += '💡 _[y/n] 프롬프트가 감지되었습니다. `y` 또는 `n`으로 응답하세요._';
+        break;
+      case 'selection':
+        message +=
+          '💡 _선택 메뉴가 감지되었습니다. 방향키(`u`, `d`)로 이동하고 `e`로 선택하세요._';
+        break;
+      case 'numbered':
+        message += '💡 _번호 옵션이 감지되었습니다. 번호를 입력하고 `e`를 눌러 선택하세요._';
+        break;
+    }
+  }
+
+  // 출력이 잘린 경우 안내 메시지 추가
+  // Add truncation notice if needed
+  if (captureResult.isTruncated) {
+    message += `\n\n_📄 전체 ${captureResult.totalLines}줄 중 일부만 표시되었습니다._`;
+  }
+
+  return message;
+}

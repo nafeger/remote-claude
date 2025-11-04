@@ -7,6 +7,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { TmuxCommandResult } from '../types';
 import { getLogger } from '../utils/logger';
+import { ParsedSegment } from '../dsl/parser';
 
 const execAsync = promisify(exec);
 
@@ -155,6 +156,106 @@ export async function sendKeys(
 export async function sendEnter(sessionName: string): Promise<TmuxCommandResult> {
   const command = `tmux send-keys -t ${sessionName} Enter`;
   return executeTmuxCommand(command);
+}
+
+/**
+ * tmux 세션에 방향키 전송
+ * Send arrow key to tmux session
+ *
+ * @param sessionName - Session name
+ * @param direction - Arrow key direction (Up, Down, Left, Right)
+ * @returns TmuxCommandResult
+ *
+ * 사용 예시 (Usage examples):
+ * - sendArrowKey('my-session', 'Down') → Down 키 전송
+ * - sendArrowKey('my-session', 'Up') → Up 키 전송
+ * - sendArrowKey('my-session', 'Left') → Left 키 전송
+ * - sendArrowKey('my-session', 'Right') → Right 키 전송
+ */
+export async function sendArrowKey(
+  sessionName: string,
+  direction: 'Up' | 'Down' | 'Left' | 'Right'
+): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+  logger.debug(`Sending arrow key ${direction} to session ${sessionName}`);
+
+  const command = `tmux send-keys -t ${sessionName} ${direction}`;
+  return executeTmuxCommand(command);
+}
+
+/**
+ * 파싱된 명령 시퀀스를 순차적으로 실행
+ * Execute parsed command sequence sequentially
+ *
+ * @param sessionName - Session name
+ * @param commands - Parsed command segments from parseInteractiveCommand()
+ * @param keyDelay - Delay between key presses in milliseconds (default: 100ms)
+ * @param finalDelay - Delay after final command in milliseconds (default: 500ms)
+ * @returns TmuxCommandResult with last command result
+ *
+ * 타이밍 (Timing):
+ * - 각 키 전송 사이: 100ms 지연 (기본값)
+ * - 최종 명령 후: 500ms 대기 (화면 업데이트 시간)
+ *
+ * 사용 예시 (Usage examples):
+ * - executeCommandSequence('my-session', [키 명령들])
+ * - 명령 시퀀스: [Down, Down, Enter] → Down, 100ms, Down, 100ms, Enter, 500ms
+ */
+export async function executeCommandSequence(
+  sessionName: string,
+  commands: ParsedSegment[],
+  keyDelay: number = 100,
+  finalDelay: number = 500
+): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+  logger.debug(`Executing command sequence with ${commands.length} commands`);
+
+  let lastResult: TmuxCommandResult = {
+    success: true,
+    output: '',
+  };
+
+  // 각 명령을 순차적으로 실행
+  // Execute each command sequentially
+  for (let i = 0; i < commands.length; i++) {
+    const command = commands[i];
+
+    if (command.type === 'key') {
+      // 키 명령: 방향키 또는 Enter
+      // Key command: arrow keys or Enter
+      if (command.key === 'Enter') {
+        lastResult = await sendEnter(sessionName);
+      } else {
+        lastResult = await sendArrowKey(sessionName, command.key);
+      }
+    } else {
+      // 텍스트 명령: 리터럴 텍스트 전송
+      // Text command: send literal text
+      lastResult = await sendKeys(sessionName, command.content, true);
+    }
+
+    // 명령 실행 실패 시 즉시 반환
+    // Return immediately if command fails
+    if (!lastResult.success) {
+      logger.error(`Command execution failed at index ${i}: ${lastResult.error}`);
+      return lastResult;
+    }
+
+    // 마지막 명령이 아니면 키 전송 간 지연
+    // Delay between key presses (except after last command)
+    if (i < commands.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, keyDelay));
+    }
+  }
+
+  // 최종 명령 후 대기 시간 (화면 업데이트 대기)
+  // Final delay after last command (wait for screen update)
+  logger.debug(`Waiting ${finalDelay}ms for screen update`);
+  await new Promise((resolve) => setTimeout(resolve, finalDelay));
+
+  logger.debug(`Command sequence execution completed successfully`);
+
+  return lastResult;
 }
 
 /**
