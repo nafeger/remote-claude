@@ -73,7 +73,7 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 1.6 혼합 문자 감지 로직 구현 - Task 1.2 isKeySequence()에서 이미 구현됨
   - [x] 1.7 에러 객체 생성 및 명확한 가이드 메시지 포함 - Task 1.2에서 이미 구현됨
 
-- [ ] 2.0 tmux 특수 키 전송 및 화면 캡처 구현
+- [x] 2.0 tmux 특수 키 전송 및 화면 캡처 구현
   - [x] 2.1 `src/tmux/executor.ts`에 `sendArrowKey()` 함수 추가
   - [x] 2.2 `sendEnter()` 함수 추가 - 이미 구현되어 있음
   - [x] 2.3 `executeCommandSequence()` 함수 구현 - 명령 배열을 순차 실행
@@ -85,12 +85,12 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 2.9 Slack 메시지 전송 통합 (캡처된 화면 + 도움말) - JobOrchestrator에 5개 함수 추가
 
 - [ ] 3.0 인터랙티브 프롬프트 자동 감지 구현
-  - [ ] 3.1 `src/dsl/detector.ts` 파일 생성
-  - [ ] 3.2 패턴 매칭 로직 구현 - `❯` 마커 감지
-  - [ ] 3.3 번호 옵션 감지 (1., 2., 3. 패턴)
-  - [ ] 3.4 [y/n] 프롬프트 감지
-  - [ ] 3.5 감지 시 제안 메시지 생성 로직
-  - [ ] 3.6 Slack 알림 전송 통합
+  - [x] 3.1 `src/dsl/detector.ts` 파일 생성 - detectAndSuggest, confidence 계산, 통계 기능
+  - [x] 3.2 패턴 매칭 로직 구현 - `❯` 마커 감지 - Task 2.6에서 구현됨 (parser.ts)
+  - [x] 3.3 번호 옵션 감지 (1., 2., 3. 패턴) - Task 2.6에서 구현됨 (parser.ts)
+  - [x] 3.4 [y/n] 프롬프트 감지 - 이미 구현되어 있음 (parser.ts)
+  - [x] 3.5 감지 시 제안 메시지 생성 로직 - Task 2.8에서 구현됨 (formatters.ts)
+  - [x] 3.6 Slack 알림 전송 통합 - Task 2.9에서 구현됨 (orchestrator.ts)
 
 - [ ] 4.0 4단계 입력 처리 파이프라인 구현
   - [ ] 4.1 `src/handlers/input-processor.ts` 파일 생성
