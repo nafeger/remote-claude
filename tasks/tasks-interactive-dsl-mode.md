@@ -84,7 +84,7 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 2.8 `src/bot/formatters.ts`에 DSL 응답 메시지 포맷터 추가 - 5개 함수 추가
   - [x] 2.9 Slack 메시지 전송 통합 (캡처된 화면 + 도움말) - JobOrchestrator에 5개 함수 추가
 
-- [ ] 3.0 인터랙티브 프롬프트 자동 감지 구현
+- [x] 3.0 인터랙티브 프롬프트 자동 감지 구현
   - [x] 3.1 `src/dsl/detector.ts` 파일 생성 - detectAndSuggest, confidence 계산, 통계 기능
   - [x] 3.2 패턴 매칭 로직 구현 - `❯` 마커 감지 - Task 2.6에서 구현됨 (parser.ts)
   - [x] 3.3 번호 옵션 감지 (1., 2., 3. 패턴) - Task 2.6에서 구현됨 (parser.ts)
@@ -93,17 +93,17 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 3.6 Slack 알림 전송 통합 - Task 2.9에서 구현됨 (orchestrator.ts)
 
 - [ ] 4.0 4단계 입력 처리 파이프라인 구현
-  - [ ] 4.1 `src/handlers/input-processor.ts` 파일 생성
-  - [ ] 4.2 1단계 구현: Slack 네이티브 명령 감지 및 패스스루
-  - [ ] 4.3 2단계 구현: 봇 메타 명령 처리 (`/setup`, `/status`, `/help`, `/stop`)
-  - [ ] 4.4 3단계 구현: 백틱 명령 감지 및 DSL 파서 호출
-  - [ ] 4.5 4단계 구현: 기본 입력 처리 - Slack 멘션 필터링 후 Claude Code 전송
-  - [ ] 4.6 `src/handlers/mention-filter.ts` 파일 생성
-  - [ ] 4.7 `filterSlackMentions()` 함수 구현 - 정규식으로 Slack 멘션 제거
-  - [ ] 4.8 멘션 제거 시 사용자 알림 메시지 생성
-  - [ ] 4.9 `processInput()` 함수 구현 - 전체 4단계 파이프라인 조율
-  - [ ] 4.10 `src/queue/orchestrator.ts`에 입력 처리 파이프라인 통합
-  - [ ] 4.11 `src/bot/commands/ask.ts` 수정 - /ask 제거 또는 deprecated 표시
+  - [x] 4.1 `src/handlers/input-processor.ts` 파일 생성
+  - [x] 4.2 1단계 구현: Slack 네이티브 명령 감지 및 패스스루
+  - [x] 4.3 2단계 구현: 봇 메타 명령 처리 (`/setup`, `/status`, `/help`, `/stop`)
+  - [x] 4.4 3단계 구현: 백틱 명령 감지 및 DSL 파서 호출
+  - [x] 4.5 4단계 구현: 기본 입력 처리 - Slack 멘션 필터링 후 Claude Code 전송
+  - [x] 4.6 `src/handlers/mention-filter.ts` 파일 생성
+  - [x] 4.7 `filterSlackMentions()` 함수 구현 - 정규식으로 Slack 멘션 제거
+  - [x] 4.8 멘션 제거 시 사용자 알림 메시지 생성
+  - [x] 4.9 `processInput()` 함수 구현 - 전체 4단계 파이프라인 조율
+  - [x] 4.10 `src/queue/orchestrator.ts`에 입력 처리 파이프라인 통합 - Task 2.9에서 구현됨
+  - [x] 4.11 `src/bot/commands/ask.ts` 수정 - /ask deprecated 표시
 
 - [ ] 5.0 오류 처리 및 사용자 가이드 구현
   - [ ] 5.1 `src/dsl/errors.ts` 파일 생성
