@@ -4,8 +4,9 @@
  */
 
 import { App, LogLevel } from '@slack/bolt';
-import { getEnvConfig } from './utils/env';
-import { getLogger, setLogLevel } from './utils/logger';
+import * as path from 'path';
+import { getEnvConfig, loadEnv } from './utils/env';
+import { getLogger, initLogger } from './utils/logger';
 import { initConfigDirectory } from './config/init';
 import { ConfigStore } from './config/store';
 import { SnippetStoreManager } from './snippet/store';
@@ -37,13 +38,14 @@ class RemoteClaudeApp {
   private cleanupTimer?: NodeJS.Timeout;
 
   constructor() {
-    const logger = getLogger();
+    // .env 파일 로드 (가장 먼저 호출)
+    loadEnv();
     const envConfig = getEnvConfig();
 
-    // 로그 레벨 설정
-    if (envConfig.logLevel) {
-      setLogLevel(envConfig.logLevel);
-    }
+    // 로거 초기화
+    const logDir = path.join(envConfig.configDir, 'logs');
+    initLogger(envConfig.logLevel, logDir);
+    const logger = getLogger();
 
     logger.info('Initializing Remote Claude Code Control System...');
 
@@ -576,10 +578,9 @@ class RemoteClaudeApp {
  * Main function
  */
 async function main(): Promise<void> {
-  const logger = getLogger();
-
   try {
     const app = new RemoteClaudeApp();
+    const logger = getLogger();
 
     // 프로세스 종료 시그널 처리
     process.on('SIGINT', async () => {
@@ -597,7 +598,7 @@ async function main(): Promise<void> {
     // 애플리케이션 시작
     await app.start();
   } catch (error) {
-    logger.error(`Fatal error: ${error}`);
+    console.error(`Fatal error: ${error}`);
     process.exit(1);
   }
 }
