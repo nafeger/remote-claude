@@ -696,7 +696,9 @@ class RemoteClaudeApp {
         const { capturePane } = await import('./tmux/executor');
         const { processCaptureResult } = await import('./tmux/parser');
 
-        const captureResult = await capturePane(channelConfig.tmuxSession);
+        // 최근 10000줄의 scrollback history 포함하여 캡처
+        // Capture including recent 10000 lines of scrollback history
+        const captureResult = await capturePane(channelConfig.tmuxSession, -10000);
 
         if (captureResult.success) {
           const processedOutput = processCaptureResult(captureResult.output || '');
