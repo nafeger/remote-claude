@@ -702,7 +702,10 @@ class RemoteClaudeApp {
 
         if (captureResult.success) {
           const processedOutput = processCaptureResult(captureResult.output || '');
-          statusMessage += '```\n' + processedOutput.summary + '\n```';
+          // Slack 메시지 포맷팅에서 backtick이 사라지는 문제 방지
+          // Prevent backtick removal in Slack message formatting
+          const escapedSummary = processedOutput.summary.replace(/`/g, '\\`');
+          statusMessage += '```\n' + escapedSummary + '\n```';
         } else {
           statusMessage += `⚠️ 화면 캡처 실패: ${captureResult.error || '알 수 없는 오류'}`;
         }
