@@ -114,7 +114,7 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
   - [x] 5.6 타임아웃 에러 처리 로직 - TmuxTimeoutError 클래스
   - [x] 5.7 각 에러 타입별 Slack 메시지 포맷 정의 - Task 2.8, 2.9에서 구현됨
 
-- [ ] 6.0 유닛 테스트 구현
+- [x] 6.0 유닛 테스트 구현
   - [x] 6.1 `src/dsl/__tests__/parser.test.ts` 생성 및 `parseInteractiveCommand()` 테스트
     - [x] 6.1.1 정상 경로: `ddd` → [Down, Down, Down]
     - [x] 6.1.2 경계 조건: `ddd` text `e` → [Down×3, "text", Enter]
@@ -135,10 +135,10 @@ PRD: `0001-prd-interactive-dsl-mode.md` 기반
     - [x] 6.5.1 정상 경로: "<@U12345> text" → "text", 멘션 1개 감지
     - [x] 6.5.2 경계 조건: "<!channel> <!here> text" → "text", 멘션 2개 감지
     - [x] 6.5.3 예외 케이스: "@file.ts text" → "@file.ts text", 멘션 0개
-  - [ ] 6.6 `src/handlers/input-processor.test.ts` 생성 및 `processInput()` 테스트
-    - [ ] 6.6.1 정상 경로: "implement feature" → Claude Code 전송
-    - [ ] 6.6.2 경계 조건: "/status" → 봇 명령, "`ddd`" → 백틱 명령
-    - [ ] 6.6.3 예외 케이스: "" (빈 문자열) → 무시 또는 에러
+  - [x] 6.6 `src/handlers/__tests__/input-processor.test.ts` 생성 및 `processInput()` 테스트
+    - [x] 6.6.1 정상 경로: "implement feature" → Claude Code 전송
+    - [x] 6.6.2 경계 조건: "/status" → 봇 명령, "`ddd`" → 백틱 명령
+    - [x] 6.6.3 예외 케이스: "" (빈 문자열) → 무시 또는 에러
 
 - [ ] 7.0 시스템 테스트 구현
   - [ ] 7.1 `src/__tests__/system/dsl-workflow.test.ts` 파일 생성

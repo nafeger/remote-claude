@@ -130,9 +130,18 @@ export function detectBotMetaCommand(input: string): InputProcessingResult | nul
 export function detectDslCommand(input: string): InputProcessingResult | null {
   const logger = getLogger();
 
-  // 백틱 패턴 확인
-  // Check for backtick pattern
+  // 백틱 패턴 확인 - 완전한 백틱 쌍이 있어야 함
+  // Check for backtick pattern - must have complete backtick pairs
   if (!input.includes('`')) {
+    return null;
+  }
+
+  // 완전한 백틱 쌍이 있는지 확인 (빈 백틱, unclosed 백틱 제외)
+  // Verify complete backtick pairs (exclude empty or unclosed backticks)
+  const backtickPattern = /`([^`]+)`/g;
+  const matches = input.match(backtickPattern);
+
+  if (!matches || matches.length === 0) {
     return null;
   }
 
