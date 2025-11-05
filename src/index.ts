@@ -413,18 +413,89 @@ class RemoteClaudeApp {
       const absolutePath = toAbsolutePath(projectPath);
       this.configStore.setChannel(channelId, projectName, absolutePath, tmuxSession);
 
-      // 7. 성공 메시지 반환
+      // 7. tmux 세션 생성 또는 확인 및 Claude Code 시작
+      const { sessionExists, createSession, sendKeys, sendEnter, capturePane, clearHistory } = await import('./tmux/executor');
+      const sessionExistsResult = await sessionExists(tmuxSession);
+
+      let needsClaudeStart = false;
+
+      if (!sessionExistsResult) {
+        logger.info(`Creating tmux session: ${tmuxSession}`);
+        const createResult = await createSession(tmuxSession, absolutePath);
+
+        if (!createResult.success) {
+          throw new Error(`tmux 세션 생성 실패: ${createResult.error}`);
+        }
+
+        logger.info(`tmux session created: ${tmuxSession}`);
+        needsClaudeStart = true;
+      } else {
+        logger.info(`tmux session already exists: ${tmuxSession}`);
+        // 기존 세션이 있어도 Claude Code가 실행 중인지 확인
+        const captureResult = await capturePane(tmuxSession, -10);
+        const hasClaudeOutput = captureResult.success &&
+          captureResult.output &&
+          (captureResult.output.includes('Claude Code') || captureResult.output.includes('claude.com'));
+
+        if (!hasClaudeOutput) {
+          logger.info('Claude Code not detected in existing session, will start it');
+          needsClaudeStart = true;
+        }
+      }
+
+      // 8. Claude Code 시작 (필요한 경우)
+      if (needsClaudeStart) {
+        logger.info('Starting Claude Code...');
+
+        // 히스토리 지우기
+        await clearHistory(tmuxSession);
+
+        // 먼저 "claude --continue" 시도
+        logger.info('Trying "claude --continue"...');
+        await sendKeys(tmuxSession, 'claude --continue', true);
+        await sendEnter(tmuxSession);
+
+        // 2초 대기 후 결과 확인
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const continueResult = await capturePane(tmuxSession, -20);
+        const continueSuccess = continueResult.success &&
+          continueResult.output &&
+          (continueResult.output.includes('Claude Code') || continueResult.output.includes('claude.com'));
+
+        if (!continueSuccess) {
+          // --continue 실패 시 일반 "claude" 명령 실행
+          logger.info('"claude --continue" failed, trying "claude"...');
+          await clearHistory(tmuxSession);
+          await sendKeys(tmuxSession, 'claude', true);
+          await sendEnter(tmuxSession);
+
+          // Claude Code 초기화 대기 (5초)
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+
+          logger.info('Claude Code started with "claude" command');
+        } else {
+          logger.info('Claude Code started with "claude --continue"');
+        }
+      }
+
+      // 9. 성공 메시지 반환
       const isUpdate = existingChannel !== undefined;
       const action = isUpdate ? '업데이트' : '설정';
 
-      await say(
-        `✅ *채널 ${action} 완료*\n\n` +
+      let successMessage = `✅ *채널 ${action} 완료*\n\n` +
         `*프로젝트:* ${projectName}\n` +
         `*경로:* \`${absolutePath}\`\n` +
-        `*tmux 세션:* \`${tmuxSession}\`\n\n` +
-        `이제 \`/run\` 또는 \`/ask\` 명령어로 Claude Code에 작업을 요청할 수 있습니다.\n` +
-        `자주 사용하는 프롬프트는 \`/snippet add\` 로 등록하세요.`
-      );
+        `*tmux 세션:* \`${tmuxSession}\`\n`;
+
+      if (needsClaudeStart) {
+        successMessage += `*Claude Code:* 자동 시작됨\n`;
+      }
+
+      successMessage += `\n이제 멘션 메시지 또는 \`/run\` 명령어로 Claude Code에 작업을 요청할 수 있습니다.\n` +
+        `자주 사용하는 프롬프트는 \`/snippet add\` 로 등록하세요.`;
+
+      await say(successMessage);
     } catch (error) {
       logger.error(`Setup failed: ${error}`);
 
@@ -722,29 +793,49 @@ class RemoteClaudeApp {
       // Claude Code 화면 캡처
       statusMessage += '\n🖥️  **Claude Code 현재 화면**\n\n';
       try {
-        const { capturePane } = await import('./tmux/executor');
+        const { capturePane, sessionExists, createSession } = await import('./tmux/executor');
         const { processCaptureResult } = await import('./tmux/parser');
 
-        // 최근 scrollback history 포함하여 캡처 (동적 조정)
-        // Capture including recent scrollback history (dynamically adjusted)
-        const captureResult = await capturePane(channelConfig.tmuxSession, -scrollbackLines);
+        // tmux 세션 존재 여부 확인
+        // Check if tmux session exists
+        const sessionExistsResult = await sessionExists(channelConfig.tmuxSession);
 
-        if (captureResult.success) {
-          // 마지막 N줄만 출력 (동적 조정)
-          // Display only last N lines (dynamically adjusted)
-          const processedOutput = processCaptureResult(captureResult.output || '', 0, lineCount);
+        if (!sessionExistsResult) {
+          // tmux 세션이 없으면 자동 생성
+          // Auto-create tmux session if it doesn't exist
+          logger.info(`tmux session not found, creating: ${channelConfig.tmuxSession}`);
+          const createResult = await createSession(channelConfig.tmuxSession, channelConfig.projectPath);
 
-          // 백틱을 single quote로 대체하여 Slack에서 표시
-          // Replace backticks with single quotes for Slack display
-          const displayOutput = processedOutput.summary.replace(/`/g, "'");
-
-          statusMessage += '```\n' + displayOutput + '\n```';
-
-          if (processedOutput.isTruncated) {
-            statusMessage += `\n\n📄 전체 ${processedOutput.totalLines}줄 중 마지막 ${lineCount}줄만 표시되었습니다.`;
+          if (!createResult.success) {
+            statusMessage += `⚠️ tmux 세션이 존재하지 않아 생성을 시도했으나 실패했습니다.\n\n`;
+            statusMessage += `\`${channelConfig.tmuxSession}\` 세션을 수동으로 생성하거나 \`/setup\` 명령어를 다시 실행하세요.`;
+          } else {
+            logger.info(`tmux session created: ${channelConfig.tmuxSession}`);
+            statusMessage += `ℹ️ tmux 세션이 자동으로 생성되었습니다.\n\n`;
+            statusMessage += '```\n(새로 생성된 세션 - 아직 출력 없음)\n```';
           }
         } else {
-          statusMessage += `⚠️ 화면 캡처 실패: ${captureResult.error || '알 수 없는 오류'}`;
+          // 최근 scrollback history 포함하여 캡처 (동적 조정)
+          // Capture including recent scrollback history (dynamically adjusted)
+          const captureResult = await capturePane(channelConfig.tmuxSession, -scrollbackLines);
+
+          if (captureResult.success) {
+            // 마지막 N줄만 출력 (동적 조정)
+            // Display only last N lines (dynamically adjusted)
+            const processedOutput = processCaptureResult(captureResult.output || '', 0, lineCount);
+
+            // 백틱을 single quote로 대체하여 Slack에서 표시
+            // Replace backticks with single quotes for Slack display
+            const displayOutput = processedOutput.summary.replace(/`/g, "'");
+
+            statusMessage += '```\n' + displayOutput + '\n```';
+
+            if (processedOutput.isTruncated) {
+              statusMessage += `\n\n📄 전체 ${processedOutput.totalLines}줄 중 마지막 ${lineCount}줄만 표시되었습니다.`;
+            }
+          } else {
+            statusMessage += `⚠️ 화면 캡처 실패: ${captureResult.error || '알 수 없는 오류'}`;
+          }
         }
       } catch (captureError) {
         logger.error(`Screen capture failed: ${captureError}`);
