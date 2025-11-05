@@ -395,7 +395,10 @@ class RemoteClaudeApp {
       // 2. 프로젝트 경로 검증
       validateProjectPath(projectPath);
 
-      // 3. 경로 충돌 검증 (현재 채널의 경로는 제외)
+      // 3. 삭제된 채널 정리 (슬랙에 존재하지 않는 채널 정보 제거)
+      await this.cleanupDeletedChannels();
+
+      // 4. 경로 충돌 검증 (현재 채널의 경로는 제외)
       const existingChannel = this.configStore.getChannel(channelId);
       const allPaths = this.configStore.getAllProjectPaths();
       const otherPaths = existingChannel
@@ -403,14 +406,14 @@ class RemoteClaudeApp {
         : allPaths;
       validatePathConflicts(projectPath, otherPaths);
 
-      // 4. tmux 세션 이름 생성
+      // 5. tmux 세션 이름 생성
       const tmuxSession = `claude-${channelId}`;
 
-      // 5. 채널 설정 저장
+      // 6. 채널 설정 저장
       const absolutePath = toAbsolutePath(projectPath);
       this.configStore.setChannel(channelId, projectName, absolutePath, tmuxSession);
 
-      // 6. 성공 메시지 반환
+      // 7. 성공 메시지 반환
       const isUpdate = existingChannel !== undefined;
       const action = isUpdate ? '업데이트' : '설정';
 
@@ -836,6 +839,51 @@ class RemoteClaudeApp {
     } catch (error) {
       logger.error(`Error during shutdown: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * 삭제된 채널 정리
+   * Clean up deleted channels (channels that no longer exist in Slack)
+   */
+  private async cleanupDeletedChannels(): Promise<void> {
+    const logger = getLogger();
+    const allChannels = this.configStore.getAllChannels();
+
+    if (allChannels.length === 0) {
+      return;
+    }
+
+    logger.debug(`Checking ${allChannels.length} channels for deletion...`);
+
+    const deletedChannels: string[] = [];
+
+    for (const channel of allChannels) {
+      try {
+        // 슬랙 API로 채널 존재 여부 확인
+        // Check if channel exists in Slack
+        await this.app.client.conversations.info({
+          channel: channel.channelId,
+        });
+        // 채널이 존재하면 계속
+        // Channel exists, continue
+      } catch (error: any) {
+        // 채널이 존재하지 않으면 (channel_not_found 에러)
+        // Channel doesn't exist (channel_not_found error)
+        if (error?.data?.error === 'channel_not_found') {
+          logger.info(`Deleting config for non-existent channel: ${channel.channelId} (${channel.projectName})`);
+          this.configStore.deleteChannel(channel.channelId);
+          deletedChannels.push(channel.channelId);
+        } else {
+          // 다른 에러는 로그만 남기고 무시
+          // Log other errors but don't delete
+          logger.warn(`Error checking channel ${channel.channelId}: ${error?.data?.error || error}`);
+        }
+      }
+    }
+
+    if (deletedChannels.length > 0) {
+      logger.info(`Cleaned up ${deletedChannels.length} deleted channel(s)`);
     }
   }
 }
