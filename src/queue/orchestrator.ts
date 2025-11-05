@@ -86,7 +86,7 @@ export class JobOrchestrator {
       return;
     }
 
-    logger.info(`Starting job: ${job.id} (channel: ${channelId})`);
+    logger.info(`Starting job: ${job.id} (channel: ${channelId}, type: ${job.type})`);
 
     try {
       // 작업 상태 업데이트
@@ -96,29 +96,38 @@ export class JobOrchestrator {
       // Slack에 시작 메시지 전송
       await this.sendJobStartMessage(channelId, job, channelConfig);
 
-      // Claude Code 시작
-      const startResult = await this.tmuxManager.startClaudeCode(
-        channelConfig.tmuxSession,
-        channelConfig.projectPath
-      );
+      // Job 타입에 따라 처리
+      const { JobType } = await import('../types');
 
-      if (!startResult.success) {
-        throw new Error(
-          `Failed to start Claude Code: ${startResult.error}`
+      if (job.type === JobType.DSL_COMMAND) {
+        // DSL 명령 처리
+        await this.executeDslCommand(channelId, channelConfig, job);
+      } else {
+        // 일반 프롬프트 처리 (RUN_SNIPPET, ASK_PROMPT)
+        // Claude Code 시작
+        const startResult = await this.tmuxManager.startClaudeCode(
+          channelConfig.tmuxSession,
+          channelConfig.projectPath
         );
+
+        if (!startResult.success) {
+          throw new Error(
+            `Failed to start Claude Code: ${startResult.error}`
+          );
+        }
+
+        // 프롬프트 전송
+        await this.tmuxManager.sendPrompt(
+          channelConfig.tmuxSession,
+          job.prompt
+        );
+
+        // 상태 저장
+        this.stateManager.setLastPrompt(channelId, job.prompt);
+
+        // 출력 폴링 시작
+        await this.pollAndReportOutput(channelId, channelConfig, job);
       }
-
-      // 프롬프트 전송
-      await this.tmuxManager.sendPrompt(
-        channelConfig.tmuxSession,
-        job.prompt
-      );
-
-      // 상태 저장
-      this.stateManager.setLastPrompt(channelId, job.prompt);
-
-      // 출력 폴링 시작
-      await this.pollAndReportOutput(channelId, channelConfig, job);
     } catch (error) {
       logger.error(`Job execution failed: ${error}`);
 
@@ -590,6 +599,158 @@ export class JobOrchestrator {
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL execution error: ${error}`);
+    }
+  }
+
+  /**
+   * DSL 명령 실행
+   * Execute DSL command
+   *
+   * @param channelId - Slack channel ID
+   * @param channelConfig - Channel configuration
+   * @param job - Job to execute
+   */
+  private async executeDslCommand(
+    channelId: string,
+    channelConfig: ChannelConfig,
+    job: Job
+  ): Promise<void> {
+    const logger = getLogger();
+
+    try {
+      logger.info(`Executing DSL command: ${job.prompt}`);
+
+      // DSL 파싱
+      const parseResult = parseInteractiveCommand(job.prompt);
+
+      if (!parseResult.success) {
+        // 파싱 실패
+        logger.error(`DSL parsing failed: ${parseResult.error?.message}`);
+        await this.sendDslParseError(
+          channelId,
+          parseResult.error || new Error('Unknown parse error')
+        );
+
+        // 작업 실패 처리
+        this.jobQueue.updateJobStatus(
+          job.id,
+          JobStatus.FAILED,
+          parseResult.error?.message || 'DSL parsing failed'
+        );
+        this.runningJobs.delete(channelId);
+
+        // 다음 작업 실행
+        await this.startJob(channelId, channelConfig);
+        return;
+      }
+
+      logger.debug(`Parsed ${parseResult.segments.length} DSL segments`);
+
+      // DSL 명령 시퀀스 실행
+      await executeCommandSequence(
+        channelConfig.tmuxSession,
+        parseResult.segments
+      );
+
+      logger.info('DSL command sequence executed successfully');
+
+      // 500ms 대기 후 화면 캡처
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 화면 캡처
+      const captureResult = await capturePane(channelConfig.tmuxSession);
+
+      if (!captureResult.success) {
+        throw new Error(`Failed to capture screen: ${captureResult.error}`);
+      }
+
+      // 출력 처리
+      const processedOutput = processCaptureResult(captureResult.output);
+
+      // 인터랙티브 프롬프트 감지
+      const interactiveInfo = detectAnyInteractivePrompt(processedOutput.fullOutput);
+
+      if (interactiveInfo && interactiveInfo.detected) {
+        // 인터랙티브 프롬프트 감지됨
+        logger.info(`Interactive prompt detected after DSL execution: ${interactiveInfo.type}`);
+
+        // 인터랙티브 프롬프트 도움말 메시지 전송
+        await this.sendInteractivePromptMessage(
+          channelId,
+          processedOutput.summary
+        );
+
+        // 작업 완료
+        this.jobQueue.updateJobStatus(job.id, JobStatus.COMPLETED);
+        this.runningJobs.delete(channelId);
+      } else {
+        // 일반 출력
+        logger.info('DSL command completed successfully');
+
+        // 성공 메시지 전송
+        await this.sendDslCompletionMessage(
+          channelId,
+          job,
+          processedOutput.summary
+        );
+
+        // 작업 완료
+        this.jobQueue.updateJobStatus(job.id, JobStatus.COMPLETED);
+        this.runningJobs.delete(channelId);
+      }
+
+      // 다음 작업 실행
+      await this.startJob(channelId, channelConfig);
+    } catch (error) {
+      logger.error(`DSL command execution failed: ${error}`);
+
+      // 에러 메시지 전송
+      await this.sendDslExecutionErrorMessage(
+        channelId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+
+      // 작업 실패 처리
+      this.jobQueue.updateJobStatus(
+        job.id,
+        JobStatus.FAILED,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      this.runningJobs.delete(channelId);
+
+      // 다음 작업 실행
+      await this.startJob(channelId, channelConfig);
+    }
+  }
+
+  /**
+   * DSL 완료 메시지 전송
+   * Send DSL completion message
+   *
+   * @param channelId - Slack channel ID
+   * @param job - Completed job
+   * @param output - Command output
+   */
+  private async sendDslCompletionMessage(
+    channelId: string,
+    job: Job,
+    output: string
+  ): Promise<void> {
+    const message =
+      formatSuccess(formatBold('DSL 명령 완료')) +
+      '\n\n' +
+      `${formatBold('작업 ID')}: ${job.id}\n` +
+      `${formatBold('명령')}: ${formatCodeBlock(job.prompt)}\n\n` +
+      `${formatBold('화면 출력')}:\n` +
+      formatCodeBlock(output);
+
+    try {
+      await this.slackApp.client.chat.postMessage({
+        channel: channelId,
+        text: message,
+      });
+    } catch (error) {
+      getLogger().error(`Failed to send DSL completion message: ${error}`);
     }
   }
 

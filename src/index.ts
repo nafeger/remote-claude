@@ -690,6 +690,25 @@ class RemoteClaudeApp {
         statusMessage += `타임아웃: ${session.timeoutAt ? new Date(session.timeoutAt).toLocaleString('ko-KR') : 'N/A'}\n`;
       }
 
+      // Claude Code 화면 캡처
+      statusMessage += '\n🖥️  **Claude Code 현재 화면**\n\n';
+      try {
+        const { capturePane } = await import('./tmux/executor');
+        const { processCaptureResult } = await import('./tmux/parser');
+
+        const captureResult = await capturePane(channelConfig.tmuxSession);
+
+        if (captureResult.success) {
+          const processedOutput = processCaptureResult(captureResult.output || '');
+          statusMessage += '```\n' + processedOutput.summary + '\n```';
+        } else {
+          statusMessage += `⚠️ 화면 캡처 실패: ${captureResult.error || '알 수 없는 오류'}`;
+        }
+      } catch (captureError) {
+        logger.error(`Screen capture failed: ${captureError}`);
+        statusMessage += `⚠️ 화면 캡처 실패: ${captureError instanceof Error ? captureError.message : '알 수 없는 오류'}`;
+      }
+
       await say(statusMessage);
     } catch (error) {
       logger.error(`Status command failed: ${error}`);
