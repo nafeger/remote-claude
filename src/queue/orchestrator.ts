@@ -447,9 +447,9 @@ export class JobOrchestrator {
         return;
       }
 
-      // 3. 화면 캡처
-      // Capture screen
-      const captureResult = await capturePane(channelConfig.tmuxSession);
+      // 3. 화면 캡처 (최근 300줄 scrollback 포함, 마지막 30줄 표시)
+      // Capture screen (include recent 300 lines scrollback, display last 30 lines)
+      const captureResult = await capturePane(channelConfig.tmuxSession, -300);
 
       if (!captureResult.success) {
         await this.sendDslExecutionErrorMessage(
@@ -460,8 +460,8 @@ export class JobOrchestrator {
       }
 
       // 4. 화면 출력 처리 및 인터랙티브 프롬프트 감지
-      // Process output and detect interactive prompt
-      const processedOutput = processCaptureResult(captureResult.output || '');
+      // Process output and detect interactive prompt (last 30 lines only)
+      const processedOutput = processCaptureResult(captureResult.output || '', 0, 30);
       const promptInfo = detectAnyInteractivePrompt(processedOutput.fullOutput);
 
       // 5. Slack에 결과 전송
@@ -657,47 +657,41 @@ export class JobOrchestrator {
       // 500ms 대기 후 화면 캡처
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // 화면 캡처
-      const captureResult = await capturePane(channelConfig.tmuxSession);
+      // 화면 캡처 (최근 300줄 scrollback 포함, 마지막 30줄 표시)
+      // Capture screen (include recent 300 lines scrollback, display last 30 lines)
+      const captureResult = await capturePane(channelConfig.tmuxSession, -300);
 
       if (!captureResult.success) {
         throw new Error(`Failed to capture screen: ${captureResult.error}`);
       }
 
-      // 출력 처리
-      const processedOutput = processCaptureResult(captureResult.output);
+      // 출력 처리 (마지막 30줄만)
+      // Process output (last 30 lines only)
+      const processedOutput = processCaptureResult(captureResult.output, 0, 30);
 
       // 인터랙티브 프롬프트 감지
       const interactiveInfo = detectAnyInteractivePrompt(processedOutput.fullOutput);
 
-      if (interactiveInfo && interactiveInfo.detected) {
-        // 인터랙티브 프롬프트 감지됨
-        logger.info(`Interactive prompt detected after DSL execution: ${interactiveInfo.type}`);
+      // 완료 메시지 전송 (항상)
+      logger.info('DSL command completed successfully');
+      await this.sendDslCompletionMessage(
+        channelId,
+        job,
+        processedOutput.summary
+      );
 
-        // 인터랙티브 프롬프트 도움말 메시지 전송
+      // 인터랙티브 프롬프트가 감지되면 추가 도움말 전송
+      if (interactiveInfo && interactiveInfo.detected) {
+        logger.info(`Interactive prompt detected after DSL execution: ${interactiveInfo.type}`);
         await this.sendInteractivePromptMessage(
           channelId,
           processedOutput.summary
         );
-
-        // 작업 완료
-        this.jobQueue.updateJobStatus(job.id, JobStatus.COMPLETED);
-        this.runningJobs.delete(channelId);
-      } else {
-        // 일반 출력
-        logger.info('DSL command completed successfully');
-
-        // 성공 메시지 전송
-        await this.sendDslCompletionMessage(
-          channelId,
-          job,
-          processedOutput.summary
-        );
-
-        // 작업 완료
-        this.jobQueue.updateJobStatus(job.id, JobStatus.COMPLETED);
-        this.runningJobs.delete(channelId);
       }
+
+      // 작업 완료
+      this.jobQueue.updateJobStatus(job.id, JobStatus.COMPLETED);
+      this.runningJobs.delete(channelId);
 
       // 다음 작업 실행
       await this.startJob(channelId, channelConfig);

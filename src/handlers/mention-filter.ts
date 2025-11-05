@@ -63,9 +63,9 @@ export function filterSlackMentions(text: string): MentionFilterResult {
   // Remove mentions
   const filteredText = text.replace(SLACK_MENTION_PATTERN, '').trim();
 
-  // 연속된 공백 정리
-  // Clean up consecutive spaces
-  const cleanedText = filteredText.replace(/\s+/g, ' ').trim();
+  // 연속된 수평 공백만 정리 (줄바꿈은 보존)
+  // Clean up consecutive horizontal spaces only (preserve newlines)
+  const cleanedText = filteredText.replace(/[ \t]+/g, ' ').trim();
 
   const hasChanged = text !== cleanedText;
 

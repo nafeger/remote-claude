@@ -67,14 +67,14 @@ export function cleanOutput(text: string): string {
  * - 전체 출력 및 요약 반환
  *
  * @param output - Raw output from tmux capture-pane
- * @param firstLines - Number of first lines to include (default: 100)
- * @param lastLines - Number of last lines to include (default: 50)
+ * @param firstLines - Number of first lines to include (default: 30)
+ * @param lastLines - Number of last lines to include (default: 20)
  * @returns CaptureResult with full output and summary
  */
 export function processCaptureResult(
   output: string,
-  firstLines: number = 100,
-  lastLines: number = 50
+  firstLines: number = 30,
+  lastLines: number = 20
 ): CaptureResult {
   // 1. ANSI 코드 제거 및 정리
   const fullOutput = cleanOutput(output);
@@ -83,7 +83,18 @@ export function processCaptureResult(
   const lines = fullOutput.split('\n');
   const totalLines = lines.length;
 
-  // 3. 긴 출력 여부 확인
+  // 3. 마지막 줄만 출력 (firstLines=0인 경우)
+  if (firstLines === 0) {
+    const lastPart = lines.slice(-lastLines);
+    return {
+      fullOutput,
+      summary: lastPart.join('\n'),
+      isTruncated: totalLines > lastLines,
+      totalLines,
+    };
+  }
+
+  // 4. 긴 출력 여부 확인
   if (totalLines <= firstLines + lastLines) {
     // 전체 출력이 충분히 짧으면 그대로 반환
     return {
@@ -94,7 +105,7 @@ export function processCaptureResult(
     };
   }
 
-  // 4. 긴 출력 처리: 처음 N줄 + 마지막 M줄만 표시
+  // 5. 긴 출력 처리: 처음 N줄 + 마지막 M줄만 표시
   const firstPart = lines.slice(0, firstLines);
   const lastPart = lines.slice(-lastLines);
   const omittedLines = totalLines - firstLines - lastLines;

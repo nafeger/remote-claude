@@ -115,7 +115,7 @@ class RemoteClaudeApp {
     // /state 명령어 - 작업 큐 상태 통합
     this.app.command('/state', async ({ command, ack, say }) => {
       await ack();
-      await this.handleStateCommand(command.channel_id, command.user_id, say);
+      await this.handleStateCommand(command.channel_id, command.user_id, command.text, say);
     });
 
     // /snippet 명령어
@@ -171,6 +171,14 @@ class RemoteClaudeApp {
 
       const channelId = message.channel;
       const text = message.text?.trim() || '';
+
+      // 디버깅: 줄바꿈 확인
+      // Debug: Check for newlines
+      if (text.includes('\n')) {
+        logger.debug(`[NEWLINE DEBUG] Message contains ${(text.match(/\n/g) || []).length} newlines`);
+        logger.debug(`[NEWLINE DEBUG] Text length: ${text.length}`);
+        logger.debug(`[NEWLINE DEBUG] First 200 chars: ${JSON.stringify(text.slice(0, 200))}`);
+      }
 
       // 채널 설정 확인
       const channelConfig = this.configStore.getChannel(channelId);
@@ -631,10 +639,28 @@ class RemoteClaudeApp {
   private async handleStateCommand(
     channelId: string,
     userId: string,
+    text: string,
     say: any
   ): Promise<void> {
     const logger = getLogger();
     logger.info(`Status command from user ${userId} in channel ${channelId}`);
+
+    // 출력 라인 수 파싱 (기본값: 30줄)
+    // Parse output line count (default: 30 lines)
+    const args = text.trim().split(/\s+/);
+    let lineCount = args.length > 1 ? parseInt(args[1], 10) : 30;
+
+    // 유효성 검증 (1-200 범위)
+    // Validate range (1-200)
+    if (isNaN(lineCount) || lineCount < 1) {
+      lineCount = 30;
+    } else if (lineCount > 200) {
+      lineCount = 200;
+    }
+
+    // Scrollback 동적 조정 (lineCount * 10, 최소 300, 최대 2000)
+    // Dynamic scrollback adjustment (lineCount * 10, min 300, max 2000)
+    const scrollbackLines = Math.max(300, Math.min(lineCount * 10, 2000));
 
     try {
       // 채널 설정 확인
@@ -696,23 +722,24 @@ class RemoteClaudeApp {
         const { capturePane } = await import('./tmux/executor');
         const { processCaptureResult } = await import('./tmux/parser');
 
-        // 최근 10000줄의 scrollback history 포함하여 캡처
-        // Capture including recent 10000 lines of scrollback history
-        const captureResult = await capturePane(channelConfig.tmuxSession, -10000);
+        // 최근 scrollback history 포함하여 캡처 (동적 조정)
+        // Capture including recent scrollback history (dynamically adjusted)
+        const captureResult = await capturePane(channelConfig.tmuxSession, -scrollbackLines);
 
         if (captureResult.success) {
-          // 디버깅: 원본 데이터 확인
-          logger.debug(`[/state] Captured ${captureResult.output?.length || 0} characters`);
-          logger.debug(`[/state] Raw output sample (last 200 chars): ${captureResult.output?.slice(-200) || 'empty'}`);
+          // 마지막 N줄만 출력 (동적 조정)
+          // Display only last N lines (dynamically adjusted)
+          const processedOutput = processCaptureResult(captureResult.output || '', 0, lineCount);
 
-          const processedOutput = processCaptureResult(captureResult.output || '');
+          // 백틱을 single quote로 대체하여 Slack에서 표시
+          // Replace backticks with single quotes for Slack display
+          const displayOutput = processedOutput.summary.replace(/`/g, "'");
 
-          logger.debug(`[/state] Processed summary length: ${processedOutput.summary.length}`);
-          logger.debug(`[/state] Summary backtick count: ${(processedOutput.summary.match(/`/g) || []).length}`);
+          statusMessage += '```\n' + displayOutput + '\n```';
 
-          // mrkdwn=false이므로 escape 불필요
-          // No need to escape since mrkdwn is disabled
-          statusMessage += '```\n' + processedOutput.summary + '\n```';
+          if (processedOutput.isTruncated) {
+            statusMessage += `\n\n📄 전체 ${processedOutput.totalLines}줄 중 마지막 ${lineCount}줄만 표시되었습니다.`;
+          }
         } else {
           statusMessage += `⚠️ 화면 캡처 실패: ${captureResult.error || '알 수 없는 오류'}`;
         }
@@ -721,11 +748,8 @@ class RemoteClaudeApp {
         statusMessage += `⚠️ 화면 캡처 실패: ${captureError instanceof Error ? captureError.message : '알 수 없는 오류'}`;
       }
 
-      // mrkdwn: false로 코드 블록 내부 backtick 보존
-      // Disable mrkdwn to preserve backticks inside code blocks
       await say({
         text: statusMessage,
-        mrkdwn: false,
       });
     } catch (error) {
       logger.error(`Status command failed: ${error}`);

@@ -139,9 +139,49 @@ export async function sendKeys(
   // 리터럴 모드인 경우 -l 플래그 사용
   const literalFlag = literal ? '-l' : '';
 
-  // 키 입력 이스케이프 처리
-  const escapedKeys = keys.replace(/"/g, '\\"');
+  // 줄바꿈이 있는 경우 여러 명령으로 분리하여 전송
+  // Split into multiple commands if newlines exist
+  if (keys.includes('\n')) {
+    const lines = keys.split('\n');
 
+    // 디버깅: 줄바꿈 처리 로그
+    // Debug: Log newline processing
+    const logger = getLogger();
+    logger.debug(`[SENDKEYS DEBUG] Detected ${lines.length} lines (${lines.length - 1} newlines)`);
+    logger.debug(`[SENDKEYS DEBUG] First line: ${JSON.stringify(lines[0].slice(0, 100))}`);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // 빈 줄도 전송 (Enter만 전송)
+      if (line.length > 0) {
+        const escapedLine = line.replace(/"/g, '\\"');
+        const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedLine}"`;
+        const result = await executeTmuxCommand(command);
+
+        if (!result.success) {
+          return result;
+        }
+      }
+
+      // 마지막 줄이 아니면 Enter 전송
+      if (i < lines.length - 1) {
+        const enterResult = await executeTmuxCommand(`tmux send-keys -t ${sessionName} Enter`);
+        if (!enterResult.success) {
+          return enterResult;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      output: 'Multi-line keys sent successfully',
+    };
+  }
+
+  // 단일 라인인 경우 기존 방식
+  // Single line - use original method
+  const escapedKeys = keys.replace(/"/g, '\\"');
   const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedKeys}"`;
   return executeTmuxCommand(command);
 }
@@ -189,22 +229,22 @@ export async function sendArrowKey(
  *
  * @param sessionName - Session name
  * @param commands - Parsed command segments from parseInteractiveCommand()
- * @param keyDelay - Delay between key presses in milliseconds (default: 100ms)
+ * @param keyDelay - Delay between key presses in milliseconds (default: 500ms)
  * @param finalDelay - Delay after final command in milliseconds (default: 500ms)
  * @returns TmuxCommandResult with last command result
  *
  * 타이밍 (Timing):
- * - 각 키 전송 사이: 100ms 지연 (기본값)
+ * - 각 키 전송 사이: 500ms 지연 (기본값) - Claude Code UI 업데이트 대기
  * - 최종 명령 후: 500ms 대기 (화면 업데이트 시간)
  *
  * 사용 예시 (Usage examples):
  * - executeCommandSequence('my-session', [키 명령들])
- * - 명령 시퀀스: [Down, Down, Enter] → Down, 100ms, Down, 100ms, Enter, 500ms
+ * - 명령 시퀀스: [Down, Down, Enter] → Down, 500ms, Down, 500ms, Enter, 500ms
  */
 export async function executeCommandSequence(
   sessionName: string,
   commands: ParsedSegment[],
-  keyDelay: number = 100,
+  keyDelay: number = 500,
   finalDelay: number = 500
 ): Promise<TmuxCommandResult> {
   const logger = getLogger();
