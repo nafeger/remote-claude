@@ -105,6 +105,16 @@ export function validateFilePath(
     };
   }
 
+  // 1.5. 와일드카드 패턴 검증
+  // 와일드카드 (*, ?) 패턴은 현재 지원하지 않음 (Phase 2 구현 예정)
+  if (userInputPath.includes('*') || userInputPath.includes('?')) {
+    logger.warn(`Wildcard pattern not supported: ${userInputPath}`);
+    return {
+      valid: false,
+      error: '⚠️ 와일드카드 패턴(`*`, `?`)은 현재 지원하지 않습니다.\n\n개별 파일 경로를 사용해주세요.\n예시: `/download README.md`',
+    };
+  }
+
   // 2. 절대 경로로 변환
   // path.resolve()는 projectPath를 기준으로 userInputPath를 절대 경로로 변환
   // 절대 경로가 입력되어도 projectPath 기준으로 재해석됨

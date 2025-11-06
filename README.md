@@ -59,6 +59,7 @@ npm install
 
 - `app_mentions:read`
 - `channels:history`
+- `channels:join` (Bot이 자동으로 채널에 참여하기 위함)
 - `channels:read`
 - `chat:write`
 - `commands`
