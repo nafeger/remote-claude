@@ -50,22 +50,22 @@ PRD: `0002-prd-file-download.md`
   - [x] 1.11 TypeScript 타입 정의 추가 (`ValidationResult` 인터페이스)
   - [x] 1.12 JSDoc 주석 추가 (함수 설명, 파라미터, 반환값)
 
-- [ ] 2.0 파일 다운로드 핸들러 구현
-  - [ ] 2.1 `src/handlers/file-download.ts` 파일 생성 및 기본 구조 설정
-  - [ ] 2.2 필요한 import 추가 (`@slack/bolt`, `fs`, `path`, `getLogger`, `validateFilePath`)
-  - [ ] 2.3 `handleFileDownload()` 함수 기본 구조 구현 (함수 시그니처, 파라미터)
-  - [ ] 2.4 채널 설정 존재 여부 확인 로직 구현 (ChannelConfig 검증)
-  - [ ] 2.5 `validateFilePath()` 호출 및 검증 결과 처리
-  - [ ] 2.6 검증 실패 시 Slack 에러 메시지 전송 로직 구현
-  - [ ] 2.7 작업 시작 메시지 전송 (`⏳ 파일을 다운로드하는 중입니다...`)
-  - [ ] 2.8 파일 스트림 생성 (`fs.createReadStream()`)
-  - [ ] 2.9 Slack `files.uploadV2()` API 호출 구현 (channel_id, file, filename, title, initial_comment)
-  - [ ] 2.10 파일 업로드 성공 시 완료 메시지 전송 (`✅ 파일 다운로드 완료`)
-  - [ ] 2.11 파일 읽기 권한 오류 처리 (`❌ 파일 읽기 권한이 없습니다.`)
-  - [ ] 2.12 Slack API 업로드 실패 에러 처리 (`❌ 파일 업로드에 실패했습니다.`)
-  - [ ] 2.13 모든 단계에서 `getLogger().error()` 로 에러 로깅
-  - [ ] 2.14 try-catch 블록으로 전체 에러 핸들링 구현
-  - [ ] 2.15 TypeScript 타입 정의 및 JSDoc 주석 추가
+- [x] 2.0 파일 다운로드 핸들러 구현
+  - [x] 2.1 `src/handlers/file-download.ts` 파일 생성 및 기본 구조 설정
+  - [x] 2.2 필요한 import 추가 (`@slack/bolt`, `fs`, `path`, `getLogger`, `validateFilePath`)
+  - [x] 2.3 `handleFileDownload()` 함수 기본 구조 구현 (함수 시그니처, 파라미터)
+  - [x] 2.4 채널 설정 존재 여부 확인 로직 구현 (ChannelConfig 검증)
+  - [x] 2.5 `validateFilePath()` 호출 및 검증 결과 처리
+  - [x] 2.6 검증 실패 시 Slack 에러 메시지 전송 로직 구현
+  - [x] 2.7 작업 시작 메시지 전송 (`⏳ 파일을 다운로드하는 중입니다...`)
+  - [x] 2.8 파일 스트림 생성 (`fs.createReadStream()`)
+  - [x] 2.9 Slack `files.uploadV2()` API 호출 구현 (channel_id, file, filename, title, initial_comment)
+  - [x] 2.10 파일 업로드 성공 시 완료 메시지 전송 (`✅ 파일 다운로드 완료`)
+  - [x] 2.11 파일 읽기 권한 오류 처리 (`❌ 파일 읽기 권한이 없습니다.`)
+  - [x] 2.12 Slack API 업로드 실패 에러 처리 (`❌ 파일 업로드에 실패했습니다.`)
+  - [x] 2.13 모든 단계에서 `getLogger().error()` 로 에러 로깅
+  - [x] 2.14 try-catch 블록으로 전체 에러 핸들링 구현
+  - [x] 2.15 TypeScript 타입 정의 및 JSDoc 주석 추가
 
 - [ ] 3.0 슬래시 커맨드 통합
   - [ ] 3.1 `src/index.ts` 파일에서 `/download` 커맨드 핸들러 영역 추가
