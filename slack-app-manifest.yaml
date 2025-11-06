@@ -1,0 +1,70 @@
+# Remote Claude - Slack App 매니페스트
+# 이 파일을 사용하여 Slack App을 빠르게 설정할 수 있습니다.
+# https://api.slack.com/apps > "Create New App" > "From an app manifest"
+
+display_information:
+  name: Remote Claude
+  description: Remote control system for Claude Code via Slack with tmux integration
+  background_color: "#2c2d30"
+
+features:
+  bot_user:
+    display_name: Remote Claude
+    always_online: true
+  slash_commands:
+    - command: /help
+      description: 사용 가능한 명령어 목록
+      usage_hint: ""
+      should_escape: false
+    - command: /setup
+      description: 채널과 프로젝트 연결
+      usage_hint: <project-name> <project-path>
+      should_escape: false
+    - command: /unsetup
+      description: 채널 설정 해제
+      usage_hint: ""
+      should_escape: false
+    - command: /state
+      description: 채널 및 작업 큐 상태
+      usage_hint: ""
+      should_escape: false
+    - command: /snippet
+      description: 스니펫 관리 (list/add/edit/delete/show)
+      usage_hint: <action> [name] [content]
+      should_escape: false
+    - command: /run
+      description: 스니펫 실행
+      usage_hint: <snippet-name>
+      should_escape: false
+    - command: /ask
+      description: 즉석 프롬프트 실행
+      usage_hint: <prompt>
+      should_escape: false
+    - command: /download
+      description: 프로젝트 파일 다운로드
+      usage_hint: <filepath>
+      should_escape: false
+    - command: /cancel
+      description: 실행 중인 작업 취소
+      usage_hint: ""
+      should_escape: false
+
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - commands
+      - files:write
+
+settings:
+  event_subscriptions:
+    bot_events:
+      - message.channels
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

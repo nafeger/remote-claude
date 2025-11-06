@@ -12,6 +12,7 @@ Slack을 통해 로컬 개발 머신의 Claude Code CLI를 원격으로 제어�
 - **tmux 세션 관리**: 각 프로젝트마다 독립적인 tmux 세션
 - **작업 큐 시스템**: 채널별 FIFO 큐로 순차 실행
 - **프롬프트 스니펫**: 자주 사용하는 프롬프트 저장 및 재사용
+- **파일 다운로드**: 프로젝트 파일을 Slack으로 안전하게 다운로드 (보안 검증 포함)
 - **대화형 워크플로우**: Claude Code의 y/n 응답 처리
 - **상태 복구**: 시스템 재시작 시 자동 상태 복구
 
@@ -32,6 +33,19 @@ npm install
 
 ### 2. Slack App 설정
 
+#### 옵션 A: 매니페스트 파일 사용 (권장)
+
+1. https://api.slack.com/apps 에서 "Create New App" 클릭
+2. **"From an app manifest"** 선택
+3. Workspace 선택
+4. `slack-app-manifest.yaml` 파일 내용을 복사하여 붙여넣기
+5. "Next" → "Create" 클릭
+6. "Socket Mode" 메뉴에서 App-Level Token 생성 (권한: `connections:write`)
+7. "OAuth & Permissions" 메뉴에서 "Install to Workspace" 클릭
+8. Bot User OAuth Token 저장 (SLACK_BOT_TOKEN)
+
+#### 옵션 B: 수동 설정
+
 #### 2.1. Slack App 생성
 
 1. https://api.slack.com/apps 에서 "Create New App" 클릭
@@ -48,6 +62,7 @@ npm install
 - `channels:read`
 - `chat:write`
 - `commands`
+- `files:write` (파일 다운로드 기능용)
 
 #### 2.3. Socket Mode 활성화
 
@@ -68,6 +83,7 @@ npm install
 | `/snippet` | 스니펫 관리 (list/add/edit/delete/show) |
 | `/run` | 스니펫 실행 |
 | `/ask` | 즉석 프롬프트 실행 |
+| `/download` | 프로젝트 파일 다운로드 |
 | `/cancel` | 실행 중인 작업 취소 |
 
 **Request URL**: 모든 명령어에 대해 임시 URL 사용 (Socket Mode에서는 실제 사용되지 않음)
@@ -190,7 +206,30 @@ Slack 채널에서 프로젝트와 연결:
 /ask "Analyze the performance bottlenecks in src/server.ts"
 ```
 
-### 4. 상태 확인
+### 4. 파일 다운로드
+
+프로젝트 파일을 Slack으로 다운로드:
+
+```
+# 로그 파일 다운로드
+/download logs/app.log
+
+# 설정 파일 다운로드
+/download config/database.json
+
+# 문서 다운로드
+/download docs/api.md
+
+# 소스 파일 다운로드
+/download src/server.ts
+```
+
+**제한사항:**
+- 파일 크기: 10MB 이하
+- 보안: `.env`, `*.key`, `*.pem`, `credentials` 등 민감한 파일은 차단됨
+- 경로: 프로젝트 디렉토리 내부 파일만 접근 가능 (path traversal 방지)
+
+### 5. 상태 확인
 
 ```
 /state
@@ -220,7 +259,7 @@ tmux 세션: `claude-my-project`
 • 시작 시간: 2024-01-15 14:20:00
 ```
 
-### 5. 대화형 응답
+### 6. 대화형 응답
 
 Claude Code가 확인을 요청하면 Slack 채널에서 `y` 또는 `n`으로 응답:
 
@@ -238,7 +277,7 @@ Do you want to proceed? [y/n]
 User: y
 ```
 
-### 6. 작업 취소
+### 7. 작업 취소
 
 ```
 /cancel
