@@ -71,20 +71,31 @@ Remote Claude 사용자들이 Slack을 통해 Claude Code를 원격 제어할 �
 - `/ㄴㅅㅁ션` → `/state`
 - `/애쥐ㅐㅁㅇ` → `/download`
 
-### US-4: 스마트폰에서 버튼으로 명령어 실행
+### US-4: 스마트폰에서 버튼으로 즉시 명령 실행
 **As a** 모바일에서 Remote Claude를 사용하는 사용자
-**I want to** 자주 사용하는 명령어를 버튼으로 선택할 수 있기를
-**So that** 타이핑 없이 빠르게 명령어를 실행할 수 있다.
+**I want to** 봇의 모든 응답에 함께 표시되는 버튼으로 즉시 명령을 실행할 수 있기를
+**So that** 타이핑이나 특수 키 입력 없이 빠르게 다음 액션을 수행할 수 있다.
 
 **시나리오:**
-1. 사용자가 Slack 앱에서 Remote Claude App Home 탭 방문
-2. 자주 사용하는 명령어 버튼 목록 표시:
-   - 📊 상태 확인 (/state)
-   - 📥 파일 다운로드 (/download)
-   - 💬 질문하기 (/ask)
-   - 🚀 스니펫 실행 (/run)
-   - ⚙️ 프로젝트 설정 (/setup)
-3. 버튼 클릭 시 해당 명령어 실행 또는 입력 폼 표시
+1. 사용자가 `/ask` 명령어를 실행하여 Claude Code에 작업 요청
+2. 봇이 진행 상황을 보고할 때마다 9개 버튼이 함께 표시됨:
+   - 📊 상태 확인
+   - 📥 파일 다운로드
+   - ⏎ 엔터
+   - ⏎⏎ 엔터*2
+   - ↑ 위
+   - ↓ 아래
+   - ← 좌
+   - → 우
+   - ❌ 취소
+3. Claude Code가 "Do you want to proceed? [y/n]" 질문 표시
+4. 사용자가 "⏎ 엔터" 버튼 클릭하여 즉시 응답
+5. 작업이 계속 진행됨
+
+**특수 키 사용 예시:**
+- Claude Code CLI에서 파일 선택 시 ↑↓ 버튼으로 네비게이션
+- 확인 프롬프트에서 ⏎ 버튼으로 기본값 선택
+- 연속 줄바꿈이 필요한 경우 ⏎⏎ 버튼 사용
 
 ### US-5: 충분한 화면 출력으로 상태 파악
 **As a** Remote Claude 사용자
@@ -257,78 +268,357 @@ console.log("test");
 - README.md에 한글 명령어 사용법 추가
 - `/help` 명령어 출력에 한글 명령어 표시
 
-### 우선순위 4: 명령어 선택 UI (App Home)
+### 우선순위 4: 인터랙티브 버튼 UI (응답마다 표시)
 
-#### FR-4.1: Slack App Home 탭 구현
-**설명:** Slack App Home에 자주 사용하는 명령어 버튼을 제공하여, 사용자가 클릭만으로 명령어를 실행할 수 있도록 해야 한다.
+#### FR-4.1: 응답 메시지에 인터랙티브 버튼 블록 추가
+**설명:** 봇이 메시지를 전송할 때마다 자동으로 9개의 인터랙티브 버튼을 함께 표시하여, 사용자가 타이핑 없이 즉시 다음 액션을 수행할 수 있도록 해야 한다.
 
-**UI 구조:**
+**버튼 구성 (9개):**
 ```
-📱 Remote Claude
+첫 번째 행:
+[📊 상태 확인] [📥 파일 다운로드] [❌ 취소]
 
-🚀 빠른 명령어
-┌─────────────────────┐
-│ 📊 상태 확인 (/state)  │ ← 버튼
-│ 📥 파일 다운로드       │ ← 버튼 (클릭 시 입력 폼)
-│ 💬 질문하기 (/ask)    │ ← 버튼 (클릭 시 입력 폼)
-│ 🚀 스니펫 실행        │ ← 버튼 (스니펫 목록 선택)
-│ ⚙️ 프로젝트 설정      │ ← 버튼 (클릭 시 입력 폼)
-└─────────────────────┘
-
-📖 도움말
-┌─────────────────────┐
-│ ❓ 사용법 보기        │ ← /help 실행
-│ 📚 문서 보기          │ ← README 링크
-└─────────────────────┘
+두 번째 행:
+[⏎ 엔터] [⏎⏎ 엔터*2] [↑] [↓] [←] [→]
 ```
 
-**Interactive Components:**
-- Slack Block Kit을 사용한 버튼 구현
-- 버튼 클릭 시 해당 명령어 실행 또는 모달 입력 폼 표시
+**버튼 목록:**
+1. **📊 상태 확인** - `/state` 명령어 즉시 실행
+2. **📥 파일 다운로드** - 모달 입력 폼 표시 (파일 경로 입력)
+3. **⏎ 엔터** - tmux에 Enter 키 전송
+4. **⏎⏎ 엔터*2** - tmux에 Enter 키 2번 연속 전송
+5. **↑ 위** - tmux에 Up 화살표 키 전송
+6. **↓ 아래** - tmux에 Down 화살표 키 전송
+7. **← 좌** - tmux에 Left 화살표 키 전송
+8. **→ 우** - tmux에 Right 화살표 키 전송
+9. **❌ 취소** - 현재 실행 중인 작업 취소 (`/cancel`)
 
-#### FR-4.2: 명령어 버튼 동작
+**표시 위치:**
+- 모든 봇 응답 메시지 하단에 자동 추가
+- 진행 상황 업데이트 메시지
+- 작업 완료 메시지
+- 에러 메시지
+
+**Slack Block Kit 구조:**
+```json
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "[봇 응답 메시지]"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "📊 상태 확인" },
+          "action_id": "quick_state"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "📥 파일 다운로드" },
+          "action_id": "quick_download"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "❌ 취소" },
+          "action_id": "cancel_job",
+          "style": "danger"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "⏎ 엔터" },
+          "action_id": "send_enter"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "⏎⏎ 엔터*2" },
+          "action_id": "send_enter_twice"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "↑" },
+          "action_id": "send_up"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "↓" },
+          "action_id": "send_down"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "←" },
+          "action_id": "send_left"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "→" },
+          "action_id": "send_right"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### FR-4.2: 버튼 동작 구현
 **설명:** 각 버튼 클릭 시 적절한 동작을 수행해야 한다.
 
-**버튼별 동작:**
+**명령어 실행 버튼:**
 
 1. **📊 상태 확인** 버튼
    - 즉시 `/state` 명령어 실행
    - 채널 설정 확인 후 상태 정보 표시
+   - 버튼 클릭 응답: "✅ 상태 확인 중..."
 
 2. **📥 파일 다운로드** 버튼
    - 모달 입력 폼 표시
    - 필드: 파일 경로 (텍스트 입력)
+   - Placeholder: "예: logs/app.log"
    - Submit 시 `/download <filepath>` 실행
 
-3. **💬 질문하기** 버튼
-   - 모달 입력 폼 표시
-   - 필드: 프롬프트 (텍스트 영역)
-   - Submit 시 `/ask <prompt>` 실행
+3. **❌ 취소** 버튼
+   - 현재 실행 중인 작업 취소
+   - `/cancel` 명령어와 동일한 동작
+   - 확인 메시지: "⚠️ 정말 작업을 취소하시겠습니까?" (확인/취소 버튼)
 
-4. **🚀 스니펫 실행** 버튼
-   - 저장된 스니펫 목록 표시
-   - 스니펫 선택 시 `/run <snippet-name>` 실행
+**특수 키 전송 버튼:**
 
-5. **⚙️ 프로젝트 설정** 버튼
-   - 모달 입력 폼 표시
-   - 필드: 프로젝트명, 프로젝트 경로
-   - Submit 시 `/setup <project-name> <project-path>` 실행
+4. **⏎ 엔터** 버튼
+   - tmux send-keys 명령어로 Enter 키 전송
+   - 대화형 프롬프트에 기본값으로 응답
+   - 버튼 클릭 응답: "✅ Enter 전송"
 
-**에러 처리:**
-- 채널 미설정 시: "⚠️ 먼저 프로젝트를 설정해주세요." + 설정 버튼
-- 입력 검증 실패 시: 모달에 에러 메시지 표시
+5. **⏎⏎ 엔터*2** 버튼
+   - tmux send-keys 명령어로 Enter 키 2번 연속 전송
+   - 연속 줄바꿈이 필요한 경우 사용
+   - 버튼 클릭 응답: "✅ Enter*2 전송"
 
-#### FR-4.3: App Home 퍼블리싱
-**설명:** Slack App의 App Home 기능을 활성화하고, Home 탭을 퍼블리싱해야 한다.
+6. **↑ 위** 버튼
+   - tmux send-keys 명령어로 Up 화살표 키 전송
+   - CLI 메뉴에서 위로 이동
+   - 버튼 클릭 응답: "✅ ↑ 전송"
 
-**Slack App 설정:**
-- App Home 기능 활성화
-- Home Tab 표시 활성화
-- 필요한 권한 추가: `im:read`, `chat:write`
+7. **↓ 아래** 버튼
+   - tmux send-keys 명령어로 Down 화살표 키 전송
+   - CLI 메뉴에서 아래로 이동
+   - 버튼 클릭 응답: "✅ ↓ 전송"
 
-**이벤트 구독:**
-- `app_home_opened` 이벤트 리스닝
-- App Home 방문 시 UI 업데이트
+8. **← 좌** 버튼
+   - tmux send-keys 명령어로 Left 화살표 키 전송
+   - 커서를 왼쪽으로 이동
+   - 버튼 클릭 응답: "✅ ← 전송"
+
+9. **→ 우** 버튼
+   - tmux send-keys 명령어로 Right 화살표 키 전송
+   - 커서를 오른쪽으로 이동
+   - 버튼 클릭 응답: "✅ → 전송"
+
+**공통 에러 처리:**
+- 채널 미설정 시: "⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요."
+- tmux 세션 없음 시: "⚠️ 활성화된 tmux 세션이 없습니다."
+- 버튼 클릭 실패 시: "❌ 버튼 처리 중 오류가 발생했습니다."
+
+#### FR-4.3: 특수 키 전송 로직 구현
+**설명:** tmux send-keys 명령어를 사용하여 특수 키(엔터, 화살표)를 원격 tmux 세션으로 전송해야 한다.
+
+**tmux send-keys 명령어:**
+```bash
+# Enter 키 전송
+tmux send-keys -t <session-name> Enter
+
+# Enter 키 2번 전송
+tmux send-keys -t <session-name> Enter Enter
+
+# 화살표 키 전송
+tmux send-keys -t <session-name> Up
+tmux send-keys -t <session-name> Down
+tmux send-keys -t <session-name> Left
+tmux send-keys -t <session-name> Right
+```
+
+**구현 위치:** `src/tmux/executor.ts`
+
+**새로운 메서드 추가:**
+```typescript
+/**
+ * tmux 세션에 특수 키를 전송합니다.
+ * @param sessionName tmux 세션 이름
+ * @param key 전송할 키 (Enter, Up, Down, Left, Right)
+ */
+async sendKey(
+  sessionName: string,
+  key: 'Enter' | 'Up' | 'Down' | 'Left' | 'Right'
+): Promise<void> {
+  const command = `tmux send-keys -t ${sessionName} ${key}`;
+  await this.executeCommand(command);
+  getLogger().info(`Sent key to tmux session: ${sessionName} - ${key}`);
+}
+
+/**
+ * tmux 세션에 Enter 키를 연속으로 전송합니다.
+ * @param sessionName tmux 세션 이름
+ * @param count Enter 키 전송 횟수 (기본값: 2)
+ */
+async sendEnterMultiple(
+  sessionName: string,
+  count: number = 2
+): Promise<void> {
+  const keys = Array(count).fill('Enter').join(' ');
+  const command = `tmux send-keys -t ${sessionName} ${keys}`;
+  await this.executeCommand(command);
+  getLogger().info(`Sent ${count} Enter keys to tmux session: ${sessionName}`);
+}
+```
+
+**버튼 핸들러에서 호출:**
+```typescript
+// src/index.ts 또는 src/bot/interactive-buttons.ts
+app.action('send_enter', async ({ ack, body }) => {
+  await ack();
+  const channelId = body.channel.id;
+  const channelConfig = configStore.getChannel(channelId);
+
+  if (!channelConfig) {
+    await app.client.chat.postMessage({
+      channel: channelId,
+      text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+    });
+    return;
+  }
+
+  await tmuxExecutor.sendKey(channelConfig.tmuxSession, 'Enter');
+  await app.client.chat.postMessage({
+    channel: channelId,
+    text: '✅ Enter 전송',
+  });
+});
+
+app.action('send_enter_twice', async ({ ack, body }) => {
+  await ack();
+  const channelId = body.channel.id;
+  const channelConfig = configStore.getChannel(channelId);
+
+  if (!channelConfig) {
+    await app.client.chat.postMessage({
+      channel: channelId,
+      text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+    });
+    return;
+  }
+
+  await tmuxExecutor.sendEnterMultiple(channelConfig.tmuxSession, 2);
+  await app.client.chat.postMessage({
+    channel: channelId,
+    text: '✅ Enter*2 전송',
+  });
+});
+```
+
+#### FR-4.4: 버튼 블록 자동 추가 유틸리티
+**설명:** 모든 봇 응답 메시지에 인터랙티브 버튼 블록을 자동으로 추가하는 유틸리티 함수를 구현해야 한다.
+
+**구현 위치:** `src/bot/formatters.ts`
+
+**새로운 함수:**
+```typescript
+/**
+ * 메시지에 인터랙티브 버튼 블록을 추가합니다.
+ * @param text 메시지 텍스트
+ * @returns Slack Block Kit 형식의 blocks 배열
+ */
+export function addInteractiveButtons(text: string): any[] {
+  return [
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: text,
+      },
+    },
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📊 상태 확인' },
+          action_id: 'quick_state',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📥 파일 다운로드' },
+          action_id: 'quick_download',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '❌ 취소' },
+          action_id: 'cancel_job',
+          style: 'danger',
+        },
+      ],
+    },
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '⏎ 엔터' },
+          action_id: 'send_enter',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '⏎⏎ 엔터*2' },
+          action_id: 'send_enter_twice',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '↑' },
+          action_id: 'send_up',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '↓' },
+          action_id: 'send_down',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '←' },
+          action_id: 'send_left',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '→' },
+          action_id: 'send_right',
+        },
+      ],
+    },
+  ];
+}
+```
+
+**사용 예시:**
+```typescript
+// 기존: 텍스트만 전송
+await app.client.chat.postMessage({
+  channel: channelId,
+  text: '✅ 작업 완료',
+});
+
+// 변경: 버튼과 함께 전송
+await app.client.chat.postMessage({
+  channel: channelId,
+  blocks: addInteractiveButtons('✅ 작업 완료'),
+});
+```
 
 ### 우선순위 5: 화면 출력 개선
 
@@ -383,22 +673,35 @@ console.log("test");
 
 ## 6. 설계 고려사항 (Design Considerations)
 
-### 6.1 Slack App Home UI 디자인
+### 6.1 인터랙티브 버튼 UI 디자인
 
 **Block Kit Components:**
-- `section`: 제목 및 설명
-- `actions`: 버튼 그룹
-- `button`: 각 명령어 버튼
-- `divider`: 섹션 구분선
+- `section`: 메시지 텍스트
+- `actions`: 버튼 그룹 (2개 행)
+- `button`: 9개 버튼 (명령어 3개 + 특수 키 6개)
+
+**버튼 레이아웃:**
+```
+첫 번째 행 (명령어 버튼):
+[📊 상태 확인] [📥 파일 다운로드] [❌ 취소]
+
+두 번째 행 (특수 키 버튼):
+[⏎ 엔터] [⏎⏎ 엔터*2] [↑] [↓] [←] [→]
+```
 
 **색상 및 스타일:**
-- Primary 버튼: 자주 사용하는 명령어 (상태 확인, 질문하기)
-- Default 버튼: 일반 명령어
-- Danger 버튼: 취소, 삭제 등 위험한 작업
+- Default 버튼: 상태 확인, 파일 다운로드, 특수 키 버튼
+- Danger 버튼: 취소 버튼 (빨간색)
 
 **아이콘 사용:**
 - 각 버튼에 직관적인 이모지 아이콘 사용
-- 사용자가 버튼 기능을 쉽게 파악할 수 있도록 함
+- 특수 키 버튼은 화살표 유니코드 문자 사용 (↑↓←→)
+- 엔터 버튼은 ⏎ 기호 사용
+
+**모바일 최적화:**
+- 버튼 크기: Slack 기본 크기 (터치 친화적)
+- 두 행 레이아웃으로 화면 공간 효율적 사용
+- 특수 키 버튼은 간결한 1-2자 텍스트로 표시
 
 ### 6.2 메시지 포맷팅
 
@@ -463,34 +766,30 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
 ### 7.1 아키텍처
 
 **새로운 모듈:**
-- `src/bot/app-home.ts`: App Home UI 관리
+- `src/bot/interactive-buttons.ts`: 인터랙티브 버튼 핸들러
 - `src/utils/korean-mapper.ts`: 한글 명령어 매핑 유틸리티
 - `src/utils/message-splitter.ts`: 메시지 분할 유틸리티
 - `src/queue/progress-tracker.ts`: 작업 진행 상황 추적
 
 **수정할 파일:**
-- `src/index.ts`: 한글 명령어 리스너 추가, App Home 이벤트 리스너 추가
+- `src/index.ts`: 한글 명령어 리스너 추가, 버튼 액션 리스너 추가
 - `src/queue/orchestrator.ts`: 실시간 출력 업데이트 로직 추가
-- `src/tmux/executor.ts`: 기본 출력 라인 수 50으로 변경
-- `src/bot/formatters.ts`: 메시지 분할 및 백틱 변환 로직 추가
+- `src/tmux/executor.ts`: 기본 출력 라인 수 50으로 변경, 특수 키 전송 메서드 추가
+- `src/bot/formatters.ts`: 메시지 분할, 백틱 변환, 버튼 블록 자동 추가 로직
 
 ### 7.2 Slack API 요구사항
 
 **필요한 권한 (Bot Token Scopes):**
-- 기존 권한 유지
-- 추가 권한 (App Home용):
-  - `im:read`: App Home DM 읽기
-  - `chat:write`: App Home 메시지 전송
+- 기존 권한 유지 (변경 없음)
+- 추가 권한 없음
 
 **Slack App 설정:**
-- App Home 기능 활성화
-- Home Tab 표시 활성화
-- Interactivity 활성화 (모달 입력 폼용)
+- Interactivity 활성화 (인터랙티브 버튼 및 모달용)
+- Request URL 설정 (Socket Mode에서는 불필요)
 
 **이벤트 구독:**
-- `app_home_opened`: App Home 방문 시
-- `block_actions`: 버튼 클릭 시
-- `view_submission`: 모달 제출 시
+- `block_actions`: 버튼 클릭 시 (9가지 버튼 액션)
+- `view_submission`: 모달 제출 시 (파일 다운로드 입력 폼)
 
 ### 7.3 성능 고려사항
 
@@ -603,24 +902,50 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
    - 폴링 종료 후 타이머가 정리됨
    - 여러 작업 동시 진행 시 독립적으로 추적
 
-#### 8.1.4 `src/bot/app-home.ts`
+#### 8.1.4 `src/bot/interactive-buttons.ts`
 **테스트 케이스 (최소 3가지):**
 
 1. **Happy Path:**
-   - App Home 방문 시 UI 정상 렌더링
-   - 버튼 클릭 시 해당 명령어 실행
-   - 모달 입력 폼 제출 시 명령어 실행
+   - "📊 상태 확인" 버튼 클릭 시 `/state` 명령어 실행
+   - "⏎ 엔터" 버튼 클릭 시 Enter 키 전송
+   - "⏎⏎ 엔터*2" 버튼 클릭 시 Enter 키 2번 전송
+   - "↑" 버튼 클릭 시 Up 화살표 키 전송
 
 2. **Boundary Conditions:**
    - 채널 미설정 상태에서 버튼 클릭 시 설정 안내
-   - 빈 입력 폼 제출 시 검증 에러
+   - tmux 세션이 없을 때 특수 키 버튼 클릭 시 에러 메시지
+   - "📥 파일 다운로드" 버튼 클릭 시 모달 입력 폼 표시
 
 3. **Exception Cases:**
-   - Slack API 에러 시 사용자에게 알림
-   - 잘못된 입력 검증
+   - tmux send-keys 실패 시 사용자에게 알림
+   - Slack API 에러 시 재시도 및 최종 에러 메시지
+   - 잘못된 action_id 처리
 
 4. **Side Effects:**
-   - App Home UI가 상태를 유지하지 않음 (stateless)
+   - 버튼 클릭 후 즉시 ack() 응답
+   - 동일 버튼 여러 번 클릭 시 독립적으로 처리
+   - 버튼 클릭이 다른 채널의 세션에 영향 주지 않음
+
+#### 8.1.5 `src/tmux/executor.ts` (특수 키 전송 메서드)
+**테스트 케이스 (최소 3가지):**
+
+1. **Happy Path:**
+   - `sendKey('session-name', 'Enter')` 호출 시 정상 전송
+   - `sendEnterMultiple('session-name', 2)` 호출 시 Enter 2번 전송
+   - 모든 화살표 키(Up, Down, Left, Right) 정상 전송
+
+2. **Boundary Conditions:**
+   - 존재하지 않는 세션에 키 전송 시 에러
+   - count=0일 때 sendEnterMultiple 처리
+   - 잘못된 키 이름 입력 시 에러
+
+3. **Exception Cases:**
+   - tmux 명령어 실행 실패 시 에러 throw
+   - 네트워크 문제로 tmux 응답 없음 시 타임아웃
+
+4. **Side Effects:**
+   - 키 전송 로그 기록 확인
+   - 여러 세션에 독립적으로 키 전송 가능
 
 ### 8.2 통합 테스트
 
@@ -663,28 +988,54 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
 
 **환경:** 실제 Slack 채널
 
-#### 시스템 테스트 1: App Home 버튼으로 파일 다운로드
-1. Slack 앱에서 Remote Claude App Home 방문
-2. "📥 파일 다운로드" 버튼 클릭
-3. 모달 입력 폼에 파일 경로 입력: `README.md`
-4. Submit 버튼 클릭
-5. 파일이 Slack에 업로드됨
+#### 시스템 테스트 1: 인터랙티브 버튼으로 특수 키 전송 및 대화형 프롬프트 응답
+1. `/ask "Create a new component with interactive prompts"` 실행
+2. 봇이 진행 상황을 보고하며 9개 버튼 표시
+3. Claude Code가 "Do you want to proceed? [y/n]" 질문 표시
+4. "⏎ 엔터" 버튼 클릭하여 기본값(y) 선택
+5. 작업이 계속 진행됨
+6. Claude Code가 파일 선택 메뉴 표시
+7. "↓" 버튼 2번 클릭하여 메뉴 네비게이션
+8. "⏎ 엔터" 버튼 클릭하여 선택 확인
+9. 작업 완료 메시지 및 버튼 표시
 
 **검증:**
-- App Home UI 정상 렌더링
-- 모달 입력 폼 정상 동작
-- 파일 다운로드 기능 정상 동작
+- 모든 응답 메시지에 9개 버튼 정상 표시
+- Enter 키 전송 정상 동작
+- 화살표 키 전송 정상 동작
+- 대화형 프롬프트 응답 성공
+- tmux 세션에서 키 입력 확인
 
-#### 시스템 테스트 2: 한글 명령어로 복잡한 작업 실행 및 진행 상황 확인
+#### 시스템 테스트 2: 인터랙티브 버튼으로 파일 다운로드 및 상태 확인
+1. `/ask "복잡한 리팩토링 작업"` 실행
+2. 봇이 진행 상황을 보고하며 버튼 표시
+3. "📊 상태 확인" 버튼 클릭
+4. 상태 정보 출력 (50라인) 및 버튼 표시
+5. "📥 파일 다운로드" 버튼 클릭
+6. 모달 입력 폼에 `logs/app.log` 입력
+7. Submit 버튼 클릭
+8. 파일 다운로드 완료 메시지 및 버튼 표시
+
+**검증:**
+- "📊 상태 확인" 버튼 즉시 실행
+- "📥 파일 다운로드" 버튼 → 모달 표시
+- 모달 제출 → 파일 다운로드 성공
+- 모든 단계에서 9개 버튼 표시
+
+#### 시스템 테스트 3: 한글 명령어 + 엔터*2 버튼 조합
 1. 한글 키보드 상태에서 `/애쥐ㅐㅁㅇ logs/app.log` 입력
 2. 명령어가 `/download logs/app.log`로 매핑됨
-3. 파일 다운로드 진행
-4. 진행 상황 메시지 표시
-5. 완료 메시지 표시
+3. 파일 다운로드 완료 메시지 및 버튼 표시
+4. `/ㄴㅅㅁ션` 입력하여 상태 확인
+5. 상태 정보 출력 및 버튼 표시
+6. Claude Code에서 연속 줄바꿈 필요한 프롬프트 표시
+7. "⏎⏎ 엔터*2" 버튼 클릭
+8. 연속 Enter 입력으로 프롬프트 종료
 
 **검증:**
-- 한글 명령어 + 인자 정상 처리
-- 진행 상황 업데이트 정상 동작
+- 한글 명령어 정상 매핑
+- 엔터*2 버튼으로 연속 Enter 전송 성공
+- 모든 응답에 버튼 표시
 
 ## 9. 성공 지표 (Success Metrics)
 
@@ -693,8 +1044,10 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
 1. **한글 명령어 성공률:** 100% (모든 한글 명령어 입력이 정상 매핑)
 2. **메시지 분할 성공률:** 100% (3500자 초과 시 100% 분할 전송)
 3. **백틱 변환 성공률:** 100% (백틱 3개 패턴 100% 변환)
-4. **App Home 버튼 동작률:** 100% (모든 버튼 클릭 시 정상 동작)
-5. **실시간 업데이트 정확도:** 95% 이상 (5초 주기로 95% 이상 업데이트)
+4. **인터랙티브 버튼 동작률:** 100% (9개 버튼 모두 정상 동작)
+5. **특수 키 전송 성공률:** 100% (엔터, 엔터*2, 화살표 4방향 모두 정상 전송)
+6. **실시간 업데이트 정확도:** 95% 이상 (5초 주기로 95% 이상 업데이트)
+7. **버튼 자동 표시율:** 100% (모든 봇 응답에 버튼 블록 표시)
 
 ### 9.2 출력 안정성
 
@@ -709,8 +1062,9 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
 ### 9.4 사용자 만족도 (정성적)
 
 1. **사용자 피드백:** "작업 진행 상황을 실시간으로 확인할 수 있어 편리하다"
-2. **사용자 피드백:** "스마트폰에서 버튼으로 명령어를 실행할 수 있어 편리하다"
+2. **사용자 피드백:** "스마트폰에서 버튼으로 특수 키를 입력할 수 있어 편리하다"
 3. **사용자 피드백:** "한글 상태에서 명령어를 입력할 수 있어 편리하다"
+4. **사용자 피드백:** "대화형 프롬프트에 버튼으로 즉시 응답할 수 있어 편리하다"
 
 ## 10. 미해결 질문 (Open Questions)
 
@@ -722,20 +1076,49 @@ const KOREAN_COMMAND_MAP: Record<string, string> = {
    - Phase 2에서 민감한 정보 자동 마스킹 기능을 추가할지?
    - 어떤 패턴을 민감한 정보로 간주할지? (API 키, 비밀번호 등)
 
-3. **App Home 기능 확장**
-   - 스니펫 관리 UI를 App Home에 추가할지?
-   - 작업 히스토리 조회 기능을 추가할지?
+3. **인터랙티브 버튼 확장**
+   - 추가 특수 키 버튼이 필요한가? (Tab, Backspace, Ctrl+C 등)
+   - 버튼 레이아웃을 사용자가 커스터마이징할 수 있게 할지?
+   - 버튼 표시 여부를 설정으로 제어할 수 있게 할지?
 
 4. **성능 모니터링**
-   - 실시간 업데이트로 인한 Slack API 사용량 증가를 어떻게 모니터링할지?
+   - 실시간 업데이트 및 버튼 표시로 인한 Slack API 사용량 증가를 어떻게 모니터링할지?
    - API Rate Limit에 도달할 경우 대응 방안은?
+   - 버튼 클릭 시 응답 시간 목표는? (현재: 즉시 ack, 1초 이내 처리)
 
 5. **다국어 지원**
    - 한글 외에 다른 언어(일본어, 중국어 등)도 지원할지?
    - 명령어 출력 메시지를 다국어로 제공할지?
+   - 버튼 텍스트를 다국어로 제공할지?
 
 ---
 
-**문서 버전:** 1.0
+**문서 버전:** 1.1
 **작성일:** 2025-11-07
+**최종 수정일:** 2025-11-07
 **다음 단계:** Task List 생성 및 구현 시작
+
+## 변경 이력
+
+### v1.1 (2025-11-07)
+- **주요 변경:** 우선순위 4 기능을 App Home에서 인터랙티브 버튼으로 변경
+- **추가된 버튼:** 9개 (상태 확인, 파일 다운로드, 엔터, 엔터*2, 화살표 4방향, 취소)
+- **주요 개선:**
+  - 모든 봇 응답에 인터랙티브 버튼 자동 표시
+  - 특수 키 전송 기능 추가 (엔터, 엔터*2, 화살표)
+  - 대화형 프롬프트 즉시 응답 가능
+  - 모바일에서 화살표 키 입력 문제 해결
+- **변경된 섹션:**
+  - US-4: App Home → 인터랙티브 버튼
+  - FR-4.1~4.4: App Home 구현 → 버튼 블록 추가 및 특수 키 전송
+  - 6.1: UI 디자인 변경
+  - 7.1~7.2: 아키텍처 및 Slack API 요구사항 변경
+  - 8.1.4~8.1.5: 테스트 케이스 변경 (app-home.ts → interactive-buttons.ts)
+  - 8.3: 시스템 테스트 3개 시나리오 재작성
+  - 9.1: 성공 지표에 특수 키 전송 및 버튼 표시 항목 추가
+  - 10: 미해결 질문에 인터랙티브 버튼 확장 항목 추가
+
+### v1.0 (2025-11-07)
+- 초기 PRD 작성
+- 5가지 UX 개선사항 정의
+- 우선순위 설정 및 기능 요구사항 작성
