@@ -127,12 +127,12 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 4.27 `src/index.ts`에 9개 버튼 액션 리스너 등록 - registerButtonActions() 메서드 구현
   - [x] 4.28 TypeScript 타입 정의 및 JSDoc 주석 추가 - 모든 함수에 완전한 JSDoc 작성됨
 
-- [ ] 5.0 화면 출력 라인 수 증가
-  - [ ] 5.1 `src/tmux/executor.ts`의 `capturePaneOutput()` 함수 수정
-  - [ ] 5.2 기본 출력 라인을 50으로 변경 (`-p -S -50` 옵션)
-  - [ ] 5.3 환경 변수 `DEFAULT_OUTPUT_LINES` 지원 추가 (선택사항)
-  - [ ] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가 (선택사항)
-  - [ ] 5.5 변경사항 적용 확인 테스트
+- [x] 5.0 화면 출력 라인 수 증가 (5/5)
+  - [x] 5.1 `src/tmux/executor.ts`의 `capturePane()` 함수 수정
+  - [x] 5.2 기본 출력 라인을 50으로 변경 (`-S -50` 옵션)
+  - [x] 5.3 환경 변수 `DEFAULT_OUTPUT_LINES` 지원 추가
+  - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
+  - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
 - [ ] 6.0 유닛 테스트 구현
   - [ ] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정

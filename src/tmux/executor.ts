@@ -303,20 +303,49 @@ export async function executeCommandSequence(
  * Capture pane output from tmux session
  *
  * @param sessionName - Session name
- * @param startLine - Start line (negative for last N lines)
+ * @param startLine - Start line (negative for last N lines, default: -50)
  * @param endLine - End line (optional)
  * @returns TmuxCommandResult with captured output
+ *
+ * 환경 변수 DEFAULT_OUTPUT_LINES로 기본 출력 라인 수 조정 가능 (최소: 10, 최대: 200)
  */
 export async function capturePane(
   sessionName: string,
   startLine?: number,
   endLine?: number
 ): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+
+  // 환경 변수에서 기본 출력 라인 수 읽기
+  // Read default output lines from environment variable
+  let defaultLines = 50; // 기본값
+  const envLines = process.env.DEFAULT_OUTPUT_LINES;
+
+  if (envLines) {
+    const parsed = parseInt(envLines, 10);
+    if (!isNaN(parsed)) {
+      // 최소값(10) 및 최대값(200) 검증
+      // Validate minimum (10) and maximum (200)
+      if (parsed < 10) {
+        logger.warn(`DEFAULT_OUTPUT_LINES too small (${parsed}), using minimum: 10`);
+        defaultLines = 10;
+      } else if (parsed > 200) {
+        logger.warn(`DEFAULT_OUTPUT_LINES too large (${parsed}), using maximum: 200`);
+        defaultLines = 200;
+      } else {
+        defaultLines = parsed;
+      }
+    } else {
+      logger.warn(`Invalid DEFAULT_OUTPUT_LINES value: ${envLines}, using default: 50`);
+    }
+  }
+
   let command = `tmux capture-pane -t ${sessionName} -p`;
 
-  if (startLine !== undefined) {
-    command += ` -S ${startLine}`;
-  }
+  // startLine이 undefined이면 기본값 사용
+  // Use default value if startLine is undefined
+  const effectiveStartLine = startLine !== undefined ? startLine : -defaultLines;
+  command += ` -S ${effectiveStartLine}`;
 
   if (endLine !== undefined) {
     command += ` -E ${endLine}`;
