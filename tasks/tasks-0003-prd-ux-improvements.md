@@ -134,7 +134,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
   - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
-- [ ] 6.0 유닛 테스트 구현 (22/60 완료)
+- [ ] 6.0 유닛 테스트 구현 (34/60 완료)
   - [x] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
   - [x] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
   - [x] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
@@ -157,18 +157,18 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 6.20 Message Splitter - Exception Cases 테스트 3: 줄바꿈 없는 긴 메시지 처리
   - [x] 6.21 Message Splitter - Side Effects 테스트: 원본 메시지 불변성 확인
   - [x] 6.22 Message Splitter - Side Effects 테스트: 분할된 메시지 합치기 (백틱 제외 동일)
-  - [ ] 6.23 `src/queue/__tests__/progress-tracker.test.ts` 생성 및 Jest 설정
-  - [ ] 6.24 Progress Tracker - Happy Path 테스트 1: 작업 시작 시 `in_progress` 상태
-  - [ ] 6.25 Progress Tracker - Happy Path 테스트 2: 5초 주기 폴링 동작 확인 (Mock)
-  - [ ] 6.26 Progress Tracker - Happy Path 테스트 3: 작업 완료 시 `completed` 상태
-  - [ ] 6.27 Progress Tracker - Boundary Conditions 테스트 1: 출력 변경 없을 때 메시지 미전송
-  - [ ] 6.28 Progress Tracker - Boundary Conditions 테스트 2: 최초 출력은 항상 전송
-  - [ ] 6.29 Progress Tracker - Boundary Conditions 테스트 3: 30분 타임아웃 시 작업 취소
-  - [ ] 6.30 Progress Tracker - Exception Cases 테스트 1: tmux 세션 응답 없음 시 재시도
-  - [ ] 6.31 Progress Tracker - Exception Cases 테스트 2: Slack API 에러 시 재시도
-  - [ ] 6.32 Progress Tracker - Exception Cases 테스트 3: 작업 취소 시 폴링 중단
-  - [ ] 6.33 Progress Tracker - Side Effects 테스트: 폴링 종료 후 타이머 정리
-  - [ ] 6.34 Progress Tracker - Side Effects 테스트: 여러 작업 동시 진행 시 독립적 추적
+  - [x] 6.23 `src/queue/__tests__/progress-tracker.test.ts` 생성 및 Jest 설정
+  - [x] 6.24 Progress Tracker - Happy Path 테스트 1: 작업 시작 시 `in_progress` 상태
+  - [x] 6.25 Progress Tracker - Happy Path 테스트 2: 5초 주기 폴링 동작 확인 (Mock)
+  - [x] 6.26 Progress Tracker - Happy Path 테스트 3: 작업 완료 시 `completed` 상태
+  - [x] 6.27 Progress Tracker - Boundary Conditions 테스트 1: 출력 변경 없을 때 메시지 미전송
+  - [x] 6.28 Progress Tracker - Boundary Conditions 테스트 2: 최초 출력은 항상 전송
+  - [x] 6.29 Progress Tracker - Boundary Conditions 테스트 3: 1시간 타임아웃 시 작업 취소
+  - [x] 6.30 Progress Tracker - Exception Cases 테스트 1: tmux 세션 응답 없음 시 재시도
+  - [x] 6.31 Progress Tracker - Exception Cases 테스트 2: Slack API 에러 시 재시도
+  - [x] 6.32 Progress Tracker - Exception Cases 테스트 3: 작업 취소 시 폴링 중단
+  - [x] 6.33 Progress Tracker - Side Effects 테스트: 폴링 종료 후 타이머 정리
+  - [x] 6.34 Progress Tracker - Side Effects 테스트: 여러 작업 동시 진행 시 독립적 추적
   - [ ] 6.35 `src/bot/__tests__/interactive-buttons.test.ts` 생성 및 Jest 설정
   - [ ] 6.36 Interactive Buttons - Happy Path 테스트 1: "📊 상태 확인" 버튼 → `/state` 실행
   - [ ] 6.37 Interactive Buttons - Happy Path 테스트 2: "⏎ 엔터" 버튼 → Enter 키 전송

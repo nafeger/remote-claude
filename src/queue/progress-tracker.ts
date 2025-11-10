@@ -432,11 +432,11 @@ export class ProgressTracker {
    * Start polling for output changes
    *
    * @param jobId - 작업 고유 식별자
-   * @param channelConfig - 채널 설정 (사용되지 않음, 호환성 유지용)
+   * @param _channelConfig - 채널 설정 (사용되지 않음, 호환성 유지용)
    * @returns void
    * @description 5초 간격으로 진행 상황을 업데이트하는 폴링 시작
    */
-  private startPolling(jobId: string, channelConfig: ChannelConfig): void {
+  private startPolling(jobId: string, _channelConfig: ChannelConfig): void {
     const logger = getLogger();
     logger.info(`Starting polling for job ${jobId} (interval: ${ProgressTracker.POLLING_INTERVAL}ms)`);
 
