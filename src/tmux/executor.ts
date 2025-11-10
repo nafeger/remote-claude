@@ -199,6 +199,56 @@ export async function sendEnter(sessionName: string): Promise<TmuxCommandResult>
 }
 
 /**
+ * tmux 세션에 Enter 키 여러 번 전송
+ * Send Enter key multiple times to tmux session
+ *
+ * @param sessionName - Session name
+ * @param count - Number of times to send Enter key
+ * @returns TmuxCommandResult
+ *
+ * 사용 예시 (Usage examples):
+ * - sendEnterMultiple('my-session', 2) → Enter 키 2번 전송
+ * - sendEnterMultiple('my-session', 0) → 아무 동작 안 함
+ */
+export async function sendEnterMultiple(
+  sessionName: string,
+  count: number
+): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+
+  if (count < 0) {
+    return {
+      success: false,
+      output: '',
+      error: 'Count must be non-negative',
+    };
+  }
+
+  if (count === 0) {
+    logger.debug('Count is 0, skipping Enter key send');
+    return {
+      success: true,
+      output: '',
+    };
+  }
+
+  logger.debug(`Sending Enter key ${count} times to session ${sessionName}`);
+
+  for (let i = 0; i < count; i++) {
+    const result = await sendEnter(sessionName);
+    if (!result.success) {
+      logger.error(`Failed to send Enter key (attempt ${i + 1}/${count}): ${result.error}`);
+      return result;
+    }
+  }
+
+  return {
+    success: true,
+    output: '',
+  };
+}
+
+/**
  * tmux 세션에 방향키 전송
  * Send arrow key to tmux session
  *
