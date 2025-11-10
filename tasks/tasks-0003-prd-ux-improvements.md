@@ -134,17 +134,17 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
   - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
-- [ ] 6.0 유닛 테스트 구현
-  - [ ] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
-  - [ ] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
-  - [ ] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
-  - [ ] 6.4 Korean Mapper - Boundary Conditions 테스트 1: 빈 문자열 입력
-  - [ ] 6.5 Korean Mapper - Boundary Conditions 테스트 2: 슬래시 없는 한글만 입력
-  - [ ] 6.6 Korean Mapper - Boundary Conditions 테스트 3: 매핑되지 않은 한글 명령어
-  - [ ] 6.7 Korean Mapper - Exception Cases 테스트 1: 특수문자 포함 입력
-  - [ ] 6.8 Korean Mapper - Exception Cases 테스트 2: 영어+한글 혼합 입력
-  - [ ] 6.9 Korean Mapper - Side Effects 테스트: 매핑 테이블 불변성 확인
-  - [ ] 6.10 Korean Mapper - Side Effects 테스트: 여러 번 호출 시 동일 결과 반환
+- [ ] 6.0 유닛 테스트 구현 (10/60 완료)
+  - [x] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
+  - [x] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
+  - [x] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
+  - [x] 6.4 Korean Mapper - Boundary Conditions 테스트 1: 빈 문자열 입력
+  - [x] 6.5 Korean Mapper - Boundary Conditions 테스트 2: 슬래시 없는 한글만 입력
+  - [x] 6.6 Korean Mapper - Boundary Conditions 테스트 3: 매핑되지 않은 한글 명령어
+  - [x] 6.7 Korean Mapper - Exception Cases 테스트 1: 특수문자 포함 입력
+  - [x] 6.8 Korean Mapper - Exception Cases 테스트 2: 영어+한글 혼합 입력
+  - [x] 6.9 Korean Mapper - Side Effects 테스트: 매핑 테이블 불변성 확인
+  - [x] 6.10 Korean Mapper - Side Effects 테스트: 여러 번 호출 시 동일 결과 반환
   - [ ] 6.11 `src/utils/__tests__/message-splitter.test.ts` 생성 및 Jest 설정
   - [ ] 6.12 Message Splitter - Happy Path 테스트 1: 3500자 이하 메시지 분할 안 함
   - [ ] 6.13 Message Splitter - Happy Path 테스트 2: 3500자 초과 메시지 정확히 분할
