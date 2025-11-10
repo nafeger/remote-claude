@@ -134,7 +134,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
   - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
-- [ ] 6.0 유닛 테스트 구현 (59/60 완료)
+- [x] 6.0 유닛 테스트 구현 (60/60 완료)
   - [x] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
   - [x] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
   - [x] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
@@ -194,7 +194,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 6.57 Executor - Exception Cases 테스트 2: tmux 타임아웃 에러
   - [x] 6.58 Executor - Side Effects 테스트: 키 전송 로그 기록 (sendArrowKey, sendEnterMultiple에 구현됨)
   - [x] 6.59 Executor - Side Effects 테스트: 여러 세션에 독립적으로 키 전송
-  - [ ] 6.60 모든 유닛 테스트 실행 및 통과 확인 (`npx jest`)
+  - [x] 6.60 모든 유닛 테스트 실행 및 통과 확인 (367개 테스트 통과)
 
 - [ ] 7.0 시스템 테스트 구현
   - [ ] 7.1 시스템 테스트 환경 준비 (실제 Slack 채널, Remote Claude 앱 실행)
