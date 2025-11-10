@@ -197,7 +197,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 6.60 모든 유닛 테스트 실행 및 통과 확인 (367개 테스트 통과)
 
 - [ ] 7.0 시스템 테스트 구현
-  - [ ] 7.1 시스템 테스트 환경 준비 (실제 Slack 채널, Remote Claude 앱 실행)
+  - [x] 7.1 시스템 테스트 환경 준비 (실제 Slack 채널, Remote Claude 앱 실행) - 가이드 작성 완료
   - [ ] 7.2 **시스템 테스트 1 Setup**: `/setup` 명령으로 테스트 채널 설정
   - [ ] 7.3 **시스템 테스트 1 Step 1**: `/ask "Create a new component with interactive prompts"` 실행
   - [ ] 7.4 **시스템 테스트 1 Step 2**: 봇이 진행 상황 보고하며 9개 버튼 표시 확인
