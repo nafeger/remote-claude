@@ -134,7 +134,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
   - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
-- [ ] 6.0 유닛 테스트 구현 (34/60 완료)
+- [ ] 6.0 유닛 테스트 구현 (48/60 완료)
   - [x] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
   - [x] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
   - [x] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
@@ -169,20 +169,20 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 6.32 Progress Tracker - Exception Cases 테스트 3: 작업 취소 시 폴링 중단
   - [x] 6.33 Progress Tracker - Side Effects 테스트: 폴링 종료 후 타이머 정리
   - [x] 6.34 Progress Tracker - Side Effects 테스트: 여러 작업 동시 진행 시 독립적 추적
-  - [ ] 6.35 `src/bot/__tests__/interactive-buttons.test.ts` 생성 및 Jest 설정
-  - [ ] 6.36 Interactive Buttons - Happy Path 테스트 1: "📊 상태 확인" 버튼 → `/state` 실행
-  - [ ] 6.37 Interactive Buttons - Happy Path 테스트 2: "⏎ 엔터" 버튼 → Enter 키 전송
-  - [ ] 6.38 Interactive Buttons - Happy Path 테스트 3: "⏎⏎ 엔터*2" 버튼 → Enter 2번 전송
-  - [ ] 6.39 Interactive Buttons - Happy Path 테스트 4: "↑" 버튼 → Up 화살표 키 전송
-  - [ ] 6.40 Interactive Buttons - Boundary Conditions 테스트 1: 채널 미설정 시 설정 안내
-  - [ ] 6.41 Interactive Buttons - Boundary Conditions 테스트 2: tmux 세션 없을 때 에러 메시지
-  - [ ] 6.42 Interactive Buttons - Boundary Conditions 테스트 3: "📥 파일 다운로드" 버튼 → 모달 표시
-  - [ ] 6.43 Interactive Buttons - Exception Cases 테스트 1: tmux send-keys 실패 시 알림
-  - [ ] 6.44 Interactive Buttons - Exception Cases 테스트 2: Slack API 에러 시 재시도
-  - [ ] 6.45 Interactive Buttons - Exception Cases 테스트 3: 잘못된 action_id 처리
-  - [ ] 6.46 Interactive Buttons - Side Effects 테스트: 버튼 클릭 후 즉시 ack() 응답
-  - [ ] 6.47 Interactive Buttons - Side Effects 테스트: 동일 버튼 여러 번 클릭 독립 처리
-  - [ ] 6.48 Interactive Buttons - Side Effects 테스트: 다른 채널 세션 영향 없음
+  - [x] 6.35 `src/bot/__tests__/interactive-buttons.test.ts` 생성 및 Jest 설정
+  - [x] 6.36 Interactive Buttons - Happy Path 테스트 1: "📊 상태 확인" 버튼 → `/state` 실행
+  - [x] 6.37 Interactive Buttons - Happy Path 테스트 2: "⏎ 엔터" 버튼 → Enter 키 전송
+  - [x] 6.38 Interactive Buttons - Happy Path 테스트 3: "⏎⏎ 엔터*2" 버튼 → Enter 2번 전송
+  - [x] 6.39 Interactive Buttons - Happy Path 테스트 4: "↑" 버튼 → Up 화살표 키 전송
+  - [x] 6.40 Interactive Buttons - Boundary Conditions 테스트 1: 채널 미설정 시 설정 안내
+  - [x] 6.41 Interactive Buttons - Boundary Conditions 테스트 2: tmux 세션 없을 때 에러 메시지
+  - [x] 6.42 Interactive Buttons - Boundary Conditions 테스트 3: "📥 파일 다운로드" 버튼 → 모달 표시
+  - [x] 6.43 Interactive Buttons - Exception Cases 테스트 1: tmux send-keys 실패 시 알림
+  - [x] 6.44 Interactive Buttons - Exception Cases 테스트 2: Slack API 에러 시 재시도
+  - [x] 6.45 Interactive Buttons - Exception Cases 테스트 3: 잘못된 action_id 처리
+  - [x] 6.46 Interactive Buttons - Side Effects 테스트: 버튼 클릭 후 즉시 ack() 응답
+  - [x] 6.47 Interactive Buttons - Side Effects 테스트: 동일 버튼 여러 번 클릭 독립 처리
+  - [x] 6.48 Interactive Buttons - Side Effects 테스트: 다른 채널 세션 영향 없음
   - [ ] 6.49 `src/tmux/__tests__/executor.test.ts` 수정 (특수 키 전송 메서드 테스트 추가)
   - [ ] 6.50 Executor - Happy Path 테스트 1: `sendKey('session', 'Enter')` 정상 전송
   - [ ] 6.51 Executor - Happy Path 테스트 2: `sendEnterMultiple('session', 2)` Enter 2번 전송

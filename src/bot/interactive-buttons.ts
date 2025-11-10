@@ -8,14 +8,13 @@
 
 import { App, BlockAction, ButtonAction } from '@slack/bolt';
 import { StateManager } from '../state/manager';
-import { capturePane, sendKeys, sendEnter, sendArrowKey, sessionExists, createSession } from '../tmux/executor';
+import { capturePane, sendEnter, sendArrowKey, sessionExists, createSession } from '../tmux/executor';
 import { getLogger } from '../utils/logger';
 import { ConfigStore } from '../config/store';
 import { JobQueue } from '../queue/queue';
 import { JobOrchestrator } from '../queue/orchestrator';
 import { processCaptureResult } from '../tmux/parser';
 import { handleFileDownload } from '../handlers/file-download';
-import type { ChannelConfig } from '../types';
 
 /**
  * 빠른 작업 버튼 생성
@@ -245,10 +244,14 @@ export async function handleQuickState(
   } catch (error) {
     logger.error(`Quick state button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **상태 조회 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **상태 조회 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -338,10 +341,14 @@ export async function handleQuickDownload(
   } catch (error) {
     logger.error(`Quick download button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **파일 다운로드 모달 열기 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **파일 다운로드 모달 열기 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -385,10 +392,14 @@ export async function handleDownloadFileModalSubmit(
   } catch (error) {
     logger.error(`Download file modal submit error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **파일 다운로드 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **파일 다운로드 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -454,10 +465,14 @@ export async function handleQuickCancel(
   } catch (error) {
     logger.error(`Quick cancel button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -519,10 +534,14 @@ export async function handleSendEnter(
   } catch (error) {
     logger.error(`Send Enter button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -593,10 +612,14 @@ export async function handleSendEnterTwice(
   } catch (error) {
     logger.error(`Send Enter Twice button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -658,10 +681,14 @@ export async function handleSendUp(
   } catch (error) {
     logger.error(`Send Up button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **↑ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **↑ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -723,10 +750,14 @@ export async function handleSendDown(
   } catch (error) {
     logger.error(`Send Down button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **↓ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **↓ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -788,10 +819,14 @@ export async function handleSendLeft(
   } catch (error) {
     logger.error(`Send Left button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **← 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **← 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
@@ -853,10 +888,14 @@ export async function handleSendRight(
   } catch (error) {
     logger.error(`Send Right button handler error: ${error}`);
     if (channelId) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **→ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
-      });
+      try {
+        await app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ **→ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        });
+      } catch (slackError) {
+        logger.error(`Failed to send error message to Slack: ${slackError}`);
+      }
     }
   }
 }
