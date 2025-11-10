@@ -54,7 +54,7 @@ export function convertBackticks(content: string): string {
     // 변환 횟수 로깅
     const backtickCount = (content.match(/```/g) || []).length;
     if (backtickCount > 0) {
-      logger.debug(`Converted ${backtickCount} backtick patterns (```) to (''')`);
+      logger.debug(`Converted ${backtickCount} backtick patterns (\`\`\`) to (''')`);
     }
 
     return converted;

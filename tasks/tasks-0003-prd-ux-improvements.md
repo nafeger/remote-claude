@@ -134,7 +134,7 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 5.4 최소값(10) 및 최대값(200) 검증 로직 추가
   - [x] 5.5 변경사항 적용 확인 테스트 (277개 테스트 통과)
 
-- [ ] 6.0 유닛 테스트 구현 (10/60 완료)
+- [ ] 6.0 유닛 테스트 구현 (22/60 완료)
   - [x] 6.1 `src/utils/__tests__/korean-mapper.test.ts` 생성 및 Jest 설정
   - [x] 6.2 Korean Mapper - Happy Path 테스트 1: `/ㄴㅅㅁ션` → `/state` 변환 검증
   - [x] 6.3 Korean Mapper - Happy Path 테스트 2: `/애쥐ㅐㅁㅇ` → `/download` 변환 검증
@@ -145,18 +145,18 @@ PRD: `0003-prd-ux-improvements.md`
   - [x] 6.8 Korean Mapper - Exception Cases 테스트 2: 영어+한글 혼합 입력
   - [x] 6.9 Korean Mapper - Side Effects 테스트: 매핑 테이블 불변성 확인
   - [x] 6.10 Korean Mapper - Side Effects 테스트: 여러 번 호출 시 동일 결과 반환
-  - [ ] 6.11 `src/utils/__tests__/message-splitter.test.ts` 생성 및 Jest 설정
-  - [ ] 6.12 Message Splitter - Happy Path 테스트 1: 3500자 이하 메시지 분할 안 함
-  - [ ] 6.13 Message Splitter - Happy Path 테스트 2: 3500자 초과 메시지 정확히 분할
-  - [ ] 6.14 Message Splitter - Happy Path 테스트 3: 분할 표시 `[1/3]`, `[2/3]` 형태 확인
-  - [ ] 6.15 Message Splitter - Boundary Conditions 테스트 1: 정확히 3500자 메시지 처리
-  - [ ] 6.16 Message Splitter - Boundary Conditions 테스트 2: 3501자 메시지 (2개로 분할)
-  - [ ] 6.17 Message Splitter - Boundary Conditions 테스트 3: 빈 문자열 입력 시 빈 배열 반환
-  - [ ] 6.18 Message Splitter - Exception Cases 테스트 1: 백틱 3개(```) 포함 시 ''' 변환
-  - [ ] 6.19 Message Splitter - Exception Cases 테스트 2: 여러 개의 백틱 패턴 모두 변환
-  - [ ] 6.20 Message Splitter - Exception Cases 테스트 3: 줄바꿈 없는 긴 메시지 처리
-  - [ ] 6.21 Message Splitter - Side Effects 테스트: 원본 메시지 불변성 확인
-  - [ ] 6.22 Message Splitter - Side Effects 테스트: 분할된 메시지 합치기 (백틱 제외 동일)
+  - [x] 6.11 `src/utils/__tests__/message-splitter.test.ts` 생성 및 Jest 설정
+  - [x] 6.12 Message Splitter - Happy Path 테스트 1: 3500자 이하 메시지 분할 안 함
+  - [x] 6.13 Message Splitter - Happy Path 테스트 2: 3500자 초과 메시지 정확히 분할
+  - [x] 6.14 Message Splitter - Happy Path 테스트 3: 분할 표시 `[1/3]`, `[2/3]` 형태 확인
+  - [x] 6.15 Message Splitter - Boundary Conditions 테스트 1: 정확히 3500자 메시지 처리
+  - [x] 6.16 Message Splitter - Boundary Conditions 테스트 2: 3501자 메시지 (2개로 분할)
+  - [x] 6.17 Message Splitter - Boundary Conditions 테스트 3: 빈 문자열 입력 시 빈 배열 반환
+  - [x] 6.18 Message Splitter - Exception Cases 테스트 1: 백틱 3개(```) 포함 시 ''' 변환
+  - [x] 6.19 Message Splitter - Exception Cases 테스트 2: 여러 개의 백틱 패턴 모두 변환
+  - [x] 6.20 Message Splitter - Exception Cases 테스트 3: 줄바꿈 없는 긴 메시지 처리
+  - [x] 6.21 Message Splitter - Side Effects 테스트: 원본 메시지 불변성 확인
+  - [x] 6.22 Message Splitter - Side Effects 테스트: 분할된 메시지 합치기 (백틱 제외 동일)
   - [ ] 6.23 `src/queue/__tests__/progress-tracker.test.ts` 생성 및 Jest 설정
   - [ ] 6.24 Progress Tracker - Happy Path 테스트 1: 작업 시작 시 `in_progress` 상태
   - [ ] 6.25 Progress Tracker - Happy Path 테스트 2: 5초 주기 폴링 동작 확인 (Mock)
