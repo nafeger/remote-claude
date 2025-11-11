@@ -487,3 +487,110 @@ export {
   sendSplitMessages,
   type SplitMessageResult,
 };
+
+// ============================================================================
+// 인터랙티브 버튼 UI (Interactive Button UI)
+// ============================================================================
+
+/**
+ * 메시지에 인터랙티브 버튼 블록을 추가합니다.
+ * Adds interactive button blocks to a message.
+ *
+ * 모든 봇 응답 메시지에 9개의 인터랙티브 버튼을 자동으로 추가하여,
+ * 사용자가 타이핑 없이 즉시 다음 액션을 수행할 수 있도록 합니다.
+ *
+ * @param text - 메시지 텍스트 (Markdown 형식 지원)
+ * @returns Slack Block Kit 형식의 blocks 배열
+ *
+ * @example
+ * ```typescript
+ * // 기존: 텍스트만 전송
+ * await app.client.chat.postMessage({
+ *   channel: channelId,
+ *   text: '✅ 작업 완료',
+ * });
+ *
+ * // 변경: 버튼과 함께 전송
+ * await app.client.chat.postMessage({
+ *   channel: channelId,
+ *   blocks: addInteractiveButtons('✅ 작업 완료'),
+ * });
+ * ```
+ *
+ * @description
+ * 반환되는 blocks 배열 구조:
+ * 1. Section 블록 - 메시지 텍스트 표시
+ * 2. Actions 블록 1 - 3개 버튼 (상태 확인, 파일 다운로드, 취소)
+ * 3. Actions 블록 2 - 6개 버튼 (엔터, 엔터*2, 방향키 4개)
+ */
+export function addInteractiveButtons(text: string): any[] {
+  return [
+    // 1. 텍스트 섹션 블록
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: text,
+      },
+    },
+    // 2. 첫 번째 actions 블록 (상태 확인, 파일 다운로드, 취소)
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📊 상태 확인' },
+          action_id: 'quick_state',
+          style: 'primary',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📥 파일 다운로드' },
+          action_id: 'quick_download',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '❌ 취소' },
+          action_id: 'cancel_job',
+          style: 'danger',
+        },
+      ],
+    },
+    // 3. 두 번째 actions 블록 (엔터, 엔터*2, 방향키 4개)
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '⏎ 엔터' },
+          action_id: 'send_enter',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '⏎⏎ 엔터*2' },
+          action_id: 'send_enter_twice',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '↑' },
+          action_id: 'send_up',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '↓' },
+          action_id: 'send_down',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '←' },
+          action_id: 'send_left',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '→' },
+          action_id: 'send_right',
+        },
+      ],
+    },
+  ];
+}

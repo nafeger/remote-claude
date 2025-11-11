@@ -246,22 +246,49 @@ export class TmuxManager {
     // 2. 히스토리 지우기 (깨끗한 상태로 시작)
     await this.clearHistory(sessionName);
 
-    // 3. "claude --continue" 명령어 전송
-    const sendResult = await this.sendKeys(sessionName, 'claude --continue', true);
-    if (!sendResult.success) {
-      return sendResult;
-    }
+    // 3. 먼저 "claude --continue" 시도
+    logger.info('Trying "claude --continue"...');
+    await this.sendKeys(sessionName, 'claude --continue', true);
+    await this.sendEnter(sessionName);
 
-    // 4. Enter 키 전송
-    const enterResult = await this.sendEnter(sessionName);
-    if (!enterResult.success) {
-      return enterResult;
-    }
-
-    // 5. Claude Code가 시작될 때까지 대기 (2초)
+    // 4. 2초 대기 후 결과 확인
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    logger.info(`Claude Code started in tmux session: ${sessionName}`);
+    const continueResult = await this.capturePane(sessionName, -20);
+    // "No conversation found to continue" 메시지가 없으면 성공
+    const continueSuccess = continueResult.success &&
+      continueResult.output &&
+      !continueResult.output.includes('No conversation found to continue');
+
+    if (!continueSuccess) {
+      // 5. --continue 실패 시 일반 "claude" 명령 실행
+      logger.info('"claude --continue" failed, trying "claude"...');
+      await this.clearHistory(sessionName);
+      await this.sendKeys(sessionName, 'claude', true);
+      await this.sendEnter(sessionName);
+
+      // 6. Claude Code 초기화 대기 (7초)
+      await new Promise((resolve) => setTimeout(resolve, 7000));
+
+      // 7. 결과 확인
+      const claudeResult = await this.capturePane(sessionName, -20);
+      const claudeSuccess = claudeResult.success &&
+        claudeResult.output &&
+        (claudeResult.output.includes('Claude Code') || claudeResult.output.includes('claude.com'));
+
+      if (!claudeSuccess) {
+        logger.error('Failed to start Claude Code with both "claude --continue" and "claude"');
+        return {
+          success: false,
+          output: '',
+          error: 'Failed to start Claude Code. Please check if Claude Code CLI is installed and accessible.',
+        };
+      }
+
+      logger.info('Claude Code started with "claude" command');
+    } else {
+      logger.info('Claude Code started with "claude --continue"');
+    }
 
     return {
       success: true,

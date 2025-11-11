@@ -223,13 +223,13 @@ class RemoteClaudeApp {
       await this.handleStateCommand(command.channel_id, command.user_id, command.text, say);
     });
 
-    // /애쥐ㅐㅁㅇ 명령어 → /download
-    this.app.command('/애쥐ㅐㅁㅇ', async ({ command, ack, say }) => {
+    // /애 명령어 → /download (자모 입력)
+    this.app.command('/애', async ({ command, ack, say }) => {
       await ack();
       const logger = getLogger();
 
       // 한글 명령어 → 영어 명령어 매핑
-      const mappingResult = mapKoreanCommand('/애쥐ㅐㅁㅇ');
+      const mappingResult = mapKoreanCommand('/애');
 
       if (!mappingResult.success) {
         logger.warn(`Korean command mapping failed: ${mappingResult.error}`);
@@ -237,13 +237,13 @@ class RemoteClaudeApp {
           `⚠️ **한글 명령어 매핑 실패**\n\n` +
           `${mappingResult.error}\n\n` +
           `**사용 가능한 한글 명령어:**\n` +
-          `• \`/ㄴㅅㅁ션\` → \`/state\` (상태 확인)\n` +
-          `• \`/애쥐ㅐㅁㅇ\` → \`/download\` (파일 다운로드)`
+          `• \`/ㄴㅅ\` → \`/state\` (상태 확인)\n` +
+          `• \`/애\` → \`/download\` (파일 다운로드)`
         );
         return;
       }
 
-      logger.info(`Korean command mapped: /애쥐ㅐㅁㅇ → ${mappingResult.mappedCommand}`);
+      logger.info(`Korean command mapped: /애 → ${mappingResult.mappedCommand}`);
 
       // /download 핸들러와 동일한 로직
       const channelId = command.channel_id;
@@ -254,7 +254,7 @@ class RemoteClaudeApp {
         if (!filePath) {
           await this.app.client.chat.postMessage({
             channel: channelId,
-            text: '⚠️ 사용법: `/애쥐ㅐㅁㅇ <filepath>` 또는 `/download <filepath>`\n\n예시:\n• `/애쥐ㅐㅁㅇ logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`',
+            text: '⚠️ 사용법: `/애 <filepath>` 또는 `/download <filepath>`\n\n예시:\n• `/애 logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`',
           });
           return;
         }
@@ -262,7 +262,7 @@ class RemoteClaudeApp {
         // 채널 설정 확인
         const channelConfig = this.configStore.getChannel(channelId);
         if (!channelConfig) {
-          logger.warn(`/애쥐ㅐㅁㅇ called in unconfigured channel: ${channelId}`);
+          logger.warn(`/애 called in unconfigured channel: ${channelId}`);
           await this.app.client.chat.postMessage({
             channel: channelId,
             text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
@@ -271,15 +271,28 @@ class RemoteClaudeApp {
         }
 
         // handleFileDownload() 함수 호출
-        logger.info(`/애쥐ㅐㅁㅇ command: ${filePath} (channel: ${channelId})`);
+        logger.info(`/애 command: ${filePath} (channel: ${channelId})`);
         await handleFileDownload(this.app, channelId, channelConfig, filePath);
       } catch (error) {
-        logger.error(`/애쥐ㅐㅁㅇ command error: ${error}`);
+        logger.error(`/애 command error: ${error}`);
         await this.app.client.chat.postMessage({
           channel: channelId,
           text: `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`,
         });
       }
+    });
+
+    // 자모 입력 명령어 지원
+    // Jamo (separated Korean characters) input support
+
+    // /ㄴㅅ 명령어 → /state (자모 입력)
+    this.app.command('/ㄴㅅ', async ({ command, ack, say }) => {
+      await ack();
+      const logger = getLogger();
+      logger.info('Jamo command detected: /ㄴㅅ → /state');
+
+      // /state 핸들러 호출
+      await this.handleStateCommand(command.channel_id, command.user_id, command.text, say);
     });
 
     logger.info('All slash commands registered');
@@ -473,7 +486,7 @@ class RemoteClaudeApp {
     });
 
     // 파일 다운로드 모달 제출 처리
-    this.app.view('download_file_modal', async ({ ack, body, view }) => {
+    this.app.view('download_file_modal', async ({ ack, body }) => {
       await ack();
       await handleDownloadFileModalSubmit(this.app, body, this.configStore);
     });
@@ -1073,6 +1086,15 @@ class RemoteClaudeApp {
         logger.error(`Screen capture failed: ${captureError}`);
         statusMessage += `⚠️ 화면 캡처 실패: ${captureError instanceof Error ? captureError.message : '알 수 없는 오류'}`;
       }
+
+      // 사용 가능한 명령어 안내 (단축키)
+      statusMessage += '\n\n---\n';
+      statusMessage += '📌 **사용 가능한 명령어**\n';
+      statusMessage += '• `/state` 또는 `/ㄴㅅ` - 상태 확인\n';
+      statusMessage += '• `/download <filepath>` 또는 `/애 <filepath>` - 파일 다운로드\n';
+      statusMessage += '• `/help` - 도움말\n';
+      statusMessage += '• `/cancel` - 현재 작업 취소\n';
+      statusMessage += '• `/snippet list` - 스니펫 목록';
 
       await say({
         text: statusMessage,
