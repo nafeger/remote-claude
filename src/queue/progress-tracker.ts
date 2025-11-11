@@ -15,6 +15,7 @@ import {
   formatCodeBlock,
   formatSuccess,
   formatError,
+  addInteractiveButtons,
 } from '../bot/formatters';
 
 /**
@@ -133,7 +134,7 @@ export class ProgressTracker {
       const initialMessage = formatWaiting('작업을 시작합니다...');
       const result = await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: initialMessage,
+        blocks: addInteractiveButtons(initialMessage),
       });
 
       // 메시지 타임스탬프 저장 (업데이트용)
@@ -196,7 +197,7 @@ export class ProgressTracker {
           await this.slackApp.client.chat.update({
             channel: state.channelId,
             ts: state.messageTs,
-            text: `${finalMessage}${formattedOutput ? '\n\n' + formattedOutput : ''}`,
+            blocks: addInteractiveButtons(`${finalMessage}${formattedOutput ? '\n\n' + formattedOutput : ''}`),
           });
 
           logger.info(`Final progress message sent for job ${jobId}`);
@@ -278,7 +279,7 @@ export class ProgressTracker {
               await this.slackApp.client.chat.update({
                 channel: state.channelId,
                 ts: state.messageTs,
-                text: formatError('❌ tmux 세션 응답 없음 (연속 5회 실패)\n\n작업이 중단되었습니다.'),
+                blocks: addInteractiveButtons(formatError('❌ tmux 세션 응답 없음 (연속 5회 실패)\n\n작업이 중단되었습니다.')),
               });
             } catch (slackError) {
               logger.error(`Failed to send tmux error message for job ${jobId}:`, slackError);
@@ -325,7 +326,7 @@ export class ProgressTracker {
           await this.slackApp.client.chat.update({
             channel: state.channelId,
             ts: state.messageTs,
-            text: `${message}\n\n${formattedOutput}`,
+            blocks: addInteractiveButtons(`${message}\n\n${formattedOutput}`),
           });
 
           // Slack API 성공 시 실패 카운터 리셋
@@ -514,7 +515,7 @@ export class ProgressTracker {
           await this.slackApp.client.chat.update({
             channel: state.channelId,
             ts: state.messageTs,
-            text: timeoutMessage,
+            blocks: addInteractiveButtons(timeoutMessage),
           });
         }
       } catch (error) {

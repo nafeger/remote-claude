@@ -5,6 +5,7 @@
 
 import { App } from '@slack/bolt';
 import { getLogger } from './logger';
+import { addInteractiveButtons } from '../bot/formatters';
 
 /**
  * 분할 메시지 결과
@@ -259,7 +260,7 @@ export async function sendSplitMessages(
       try {
         await app.client.chat.postMessage({
           channel: channelId,
-          text: message,
+          blocks: addInteractiveButtons(message),
         });
 
         logger.debug(`Message ${messageNumber}/${messages.length} sent successfully`);
@@ -300,7 +301,7 @@ export async function sendSplitMessages(
           try {
             await app.client.chat.postMessage({
               channel: channelId,
-              text: `⚠️ 메시지 전송 실패: [${messageNumber}]번째 메시지`,
+              blocks: addInteractiveButtons(`⚠️ 메시지 전송 실패: [${messageNumber}]번째 메시지`),
             });
           } catch (notifyError) {
             logger.error('Failed to send failure notification:', notifyError);

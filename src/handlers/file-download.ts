@@ -14,6 +14,7 @@ import * as path from 'path';
 import { getLogger } from '../utils/logger';
 import { validateFilePath } from '../utils/file-security';
 import { ChannelConfig } from '../types';
+import { addInteractiveButtons } from '../bot/formatters';
 
 /**
  * 파일 다운로드 핸들러
@@ -50,7 +51,7 @@ export async function handleFileDownload(
       logger.error('Channel config or projectPath is missing');
       await app.client.chat.postMessage({
         channel: channelId,
-        text: '⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+        blocks: addInteractiveButtons('⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.'),
       });
       return;
     }
@@ -79,7 +80,7 @@ export async function handleFileDownload(
       logger.warn(`File validation failed: ${validation.error}`);
       await app.client.chat.postMessage({
         channel: channelId,
-        text: validation.error || '❌ 파일 경로 검증에 실패했습니다.',
+        blocks: addInteractiveButtons(validation.error || '❌ 파일 경로 검증에 실패했습니다.'),
       });
       return;
     }
@@ -91,7 +92,7 @@ export async function handleFileDownload(
     // 4. 작업 시작 메시지 전송
     await app.client.chat.postMessage({
       channel: channelId,
-      text: `⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``,
+      blocks: addInteractiveButtons(`⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``),
     });
 
     // 5. 파일 스트림 생성
@@ -113,7 +114,7 @@ export async function handleFileDownload(
     // 7. 업로드 성공 메시지 전송
     await app.client.chat.postMessage({
       channel: channelId,
-      text: `✅ 파일 다운로드 완료\n파일: \`${fileName}\``,
+      blocks: addInteractiveButtons(`✅ 파일 다운로드 완료\n파일: \`${fileName}\``),
     });
   } catch (error) {
     // 8. 에러 타입별 처리 및 로깅
@@ -144,7 +145,7 @@ export async function handleFileDownload(
 
     await app.client.chat.postMessage({
       channel: channelId,
-      text: errorMessage,
+      blocks: addInteractiveButtons(errorMessage),
     });
   }
 }

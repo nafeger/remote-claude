@@ -20,6 +20,7 @@ import {
   formatInteractivePromptHelp,
   formatDslMixedCharError,
   formatDslExecutionError,
+  addInteractiveButtons,
 } from '../bot/formatters';
 import {
   parseInteractiveCommand,
@@ -172,7 +173,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send start message: ${error}`);
@@ -239,7 +240,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send completion message: ${error}`);
@@ -267,7 +268,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send failure message: ${error}`);
@@ -488,7 +489,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL response message: ${error}`);
@@ -534,7 +535,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL parse error: ${error}`);
@@ -557,7 +558,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL execution error: ${error}`);
@@ -691,7 +692,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL completion message: ${error}`);
@@ -710,7 +711,7 @@ export class JobOrchestrator {
     try {
       await this.slackApp.client.chat.postMessage({
         channel: channelId,
-        text: message,
+        blocks: addInteractiveButtons(message),
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL guide: ${error}`);
