@@ -189,10 +189,10 @@ export async function handleQuickState(
       statusMessage += `타임아웃: ${session.timeoutAt ? new Date(session.timeoutAt).toLocaleString('ko-KR') : 'N/A'}\n`;
     }
 
-    // Claude Code 화면 캡처 (최근 30줄)
+    // Claude Code 화면 캡처 (최근 80줄)
     statusMessage += '\n🖥️  **Claude Code 현재 화면**\n\n';
     try {
-      const lineCount = 30;
+      const lineCount = 80;
       const scrollbackLines = Math.max(300, Math.min(lineCount * 10, 2000));
 
       // tmux 세션 존재 여부 확인
