@@ -520,8 +520,12 @@ export {
  * @description
  * 반환되는 blocks 배열 구조:
  * 1. Section 블록 - 메시지 텍스트 표시
- * 2. Actions 블록 1 - 3개 버튼 (상태 확인, 파일 다운로드, 취소)
- * 3. Actions 블록 2 - 6개 버튼 (엔터, 엔터*2, 방향키 4개)
+ * 2. Actions 블록 1 - 5개 버튼 (상태, 파일, 취소, 엔터, 엔터*2)
+ * 3. Actions 블록 2 - 4개 버튼 (방향키 4개)
+ *
+ * 버튼 레이아웃:
+ * 1행: [📊 상태] [📥 파일] [❌] [⏎] [⏎⏎]
+ * 2행: [↑] [↓] [←] [→]
  */
 export function addInteractiveButtons(text: string): any[] {
   return [
@@ -533,43 +537,43 @@ export function addInteractiveButtons(text: string): any[] {
         text: text,
       },
     },
-    // 2. 첫 번째 actions 블록 (상태 확인, 파일 다운로드, 취소)
+    // 2. 첫 번째 actions 블록 (상태, 파일, 취소, 엔터, 엔터*2)
     {
       type: 'actions',
       elements: [
         {
           type: 'button',
-          text: { type: 'plain_text', text: '📊 상태 확인' },
+          text: { type: 'plain_text', text: '📊 상태' },
           action_id: 'quick_state',
           style: 'primary',
         },
         {
           type: 'button',
-          text: { type: 'plain_text', text: '📥 파일 다운로드' },
+          text: { type: 'plain_text', text: '📥 파일' },
           action_id: 'quick_download',
         },
         {
           type: 'button',
-          text: { type: 'plain_text', text: '❌ 취소' },
+          text: { type: 'plain_text', text: '❌' },
           action_id: 'cancel_job',
           style: 'danger',
         },
-      ],
-    },
-    // 3. 두 번째 actions 블록 (엔터, 엔터*2, 방향키 4개)
-    {
-      type: 'actions',
-      elements: [
         {
           type: 'button',
-          text: { type: 'plain_text', text: '⏎ 엔터' },
+          text: { type: 'plain_text', text: '⏎' },
           action_id: 'send_enter',
         },
         {
           type: 'button',
-          text: { type: 'plain_text', text: '⏎⏎ 엔터*2' },
+          text: { type: 'plain_text', text: '⏎⏎' },
           action_id: 'send_enter_twice',
         },
+      ],
+    },
+    // 3. 두 번째 actions 블록 (방향키 4개)
+    {
+      type: 'actions',
+      elements: [
         {
           type: 'button',
           text: { type: 'plain_text', text: '↑' },
