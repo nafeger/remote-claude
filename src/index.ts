@@ -23,6 +23,7 @@ import { unsetupHandler } from './bot/commands/unsetup';
 import { snippetHandler } from './bot/commands/snippet';
 import { handleFileDownload } from './handlers/file-download';
 import { mapKoreanCommand } from './utils/korean-mapper';
+import { addInteractiveButtons } from './bot/formatters';
 
 /**
  * 메인 애플리케이션 클래스
@@ -144,9 +145,11 @@ class RemoteClaudeApp {
       try {
         // 2. 빈 경로 입력 확인
         if (!filePath) {
+          const usageText = '⚠️ 사용법: `/download <filepath>`\n\n예시:\n• `/download logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`';
           await this.app.client.chat.postMessage({
             channel: channelId,
-            text: '⚠️ 사용법: `/download <filepath>`\n\n예시:\n• `/download logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`',
+            text: usageText,
+            blocks: addInteractiveButtons(usageText),
           });
           return;
         }
@@ -155,9 +158,11 @@ class RemoteClaudeApp {
         const channelConfig = this.configStore.getChannel(channelId);
         if (!channelConfig) {
           logger.warn(`/download called in unconfigured channel: ${channelId}`);
+          const setupText = '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.';
           await this.app.client.chat.postMessage({
             channel: channelId,
-            text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+            text: setupText,
+            blocks: addInteractiveButtons(setupText),
           });
           return;
         }
@@ -167,9 +172,11 @@ class RemoteClaudeApp {
         await handleFileDownload(this.app, channelId, channelConfig, filePath);
       } catch (error) {
         logger.error(`/download command error: ${error}`);
+        const errorText = `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`;
         await this.app.client.chat.postMessage({
           channel: channelId,
-          text: `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`,
+          text: errorText,
+          blocks: addInteractiveButtons(errorText),
         });
       }
     });
@@ -596,7 +603,7 @@ class RemoteClaudeApp {
 
     // 인자 검증
     if (args.length < 2) {
-      await say(
+      const usageMessage =
         '*사용법 오류*\n\n' +
         '사용법: `/setup <project-name> <project-path>`\n\n' +
         '*예시:*\n' +
@@ -604,8 +611,12 @@ class RemoteClaudeApp {
         '• `/setup frontend ~/workspace/project/frontend`\n\n' +
         '*설명:*\n' +
         '• `<project-name>`: 프로젝트 이름 (알파벳, 숫자, -, _ 만 사용)\n' +
-        '• `<project-path>`: 프로젝트 디렉토리 절대 경로'
-      );
+        '• `<project-path>`: 프로젝트 디렉토리 절대 경로';
+
+      await say({
+        text: usageMessage,
+        blocks: addInteractiveButtons(usageMessage),
+      });
       return;
     }
 
@@ -740,15 +751,21 @@ class RemoteClaudeApp {
       successMessage += `\n이제 멘션 메시지 또는 \`/run\` 명령어로 Claude Code에 작업을 요청할 수 있습니다.\n` +
         `자주 사용하는 프롬프트는 \`/snippet add\` 로 등록하세요.`;
 
-      await say(successMessage);
+      await say({
+        text: successMessage,
+        blocks: addInteractiveButtons(successMessage),
+      });
     } catch (error) {
       logger.error(`Setup failed: ${error}`);
 
-      if (error instanceof Error) {
-        await say(`❌ *설정 실패*\n\n${error.message}`);
-      } else {
-        await say('❌ *설정 실패*\n\n알 수 없는 오류가 발생했습니다.');
-      }
+      const errorMessage = error instanceof Error
+        ? `❌ *설정 실패*\n\n${error.message}`
+        : '❌ *설정 실패*\n\n알 수 없는 오류가 발생했습니다.';
+
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
