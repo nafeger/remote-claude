@@ -313,14 +313,31 @@ export class TmuxManager {
     logger.info(`Prompt length: ${prompt.length} characters`);
     logger.debug(`Prompt (first 200 chars): ${prompt.slice(0, 200)}${prompt.length > 200 ? '...' : ''}`);
 
-    // 1. 프롬프트 전송 (리터럴 모드)
-    // 멀티라인 메시지는 한 줄로 변환 (Claude Code가 Enter로 즉시 전송하므로)
-    const singleLinePrompt = prompt.replace(/\n/g, ' ');  // 줄바꿈을 공백으로 치환
-    logger.debug(`Single-line prompt: ${singleLinePrompt.slice(0, 200)}...`);
+    // 1. 프롬프트 전송
+    // 멀티라인 메시지는 paste-buffer 사용 (줄바꿈 보존)
+    if (prompt.includes('\n')) {
+      logger.info('Multiline prompt detected, using paste-buffer');
 
-    const sendResult = await this.sendKeys(sessionName, singleLinePrompt, true);
-    if (!sendResult.success) {
-      return sendResult;
+      // 버퍼에 텍스트 로드
+      const loadResult = await executor.loadBuffer(prompt);
+      if (!loadResult.success) {
+        logger.error('Failed to load buffer');
+        return loadResult;
+      }
+
+      // 버퍼 붙여넣기
+      const pasteResult = await executor.pasteBuffer(sessionName);
+      if (!pasteResult.success) {
+        logger.error('Failed to paste buffer');
+        return pasteResult;
+      }
+    } else {
+      // 단일 라인 메시지는 기존 방식 사용
+      logger.info('Single-line prompt, using send-keys');
+      const sendResult = await this.sendKeys(sessionName, prompt, true);
+      if (!sendResult.success) {
+        return sendResult;
+      }
     }
 
     // 2. Enter 키 2번 전송 (Claude Code 표준 입력 방식: 빈 줄 + Enter = 전송)

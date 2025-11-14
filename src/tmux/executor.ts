@@ -187,6 +187,63 @@ export async function sendKeys(
 }
 
 /**
+ * tmux 버퍼에 텍스트 로드
+ * Load text into tmux buffer
+ *
+ * @param text - Text to load into buffer (can include newlines)
+ * @returns TmuxCommandResult
+ */
+export async function loadBuffer(text: string): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+
+  // 텍스트를 임시 파일에 저장하여 버퍼로 로드
+  // (shell injection 방지를 위해 파일 사용)
+  const fs = await import('fs');
+  const os = await import('os');
+  const path = await import('path');
+
+  try {
+    // 임시 파일 생성
+    const tmpFile = path.join(os.tmpdir(), `tmux-buffer-${Date.now()}.txt`);
+    fs.writeFileSync(tmpFile, text, 'utf8');
+
+    // tmux 버퍼로 로드
+    const command = `tmux load-buffer ${tmpFile}`;
+    logger.debug(`Loading buffer from file: ${tmpFile}`);
+
+    const result = await executeTmuxCommand(command);
+
+    // 임시 파일 삭제
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch (unlinkError) {
+      logger.warn(`Failed to delete temp file ${tmpFile}: ${unlinkError}`);
+    }
+
+    return result;
+  } catch (error) {
+    logger.error(`Failed to load buffer: ${error}`);
+    return {
+      success: false,
+      output: '',
+      error: `Failed to load buffer: ${error}`,
+    };
+  }
+}
+
+/**
+ * tmux 버퍼 내용을 세션에 붙여넣기
+ * Paste tmux buffer content to session
+ *
+ * @param sessionName - Session name
+ * @returns TmuxCommandResult
+ */
+export async function pasteBuffer(sessionName: string): Promise<TmuxCommandResult> {
+  const command = `tmux paste-buffer -t ${sessionName}`;
+  return executeTmuxCommand(command);
+}
+
+/**
  * tmux 세션에 Enter 키 전송
  * Send Enter key to tmux session
  *
