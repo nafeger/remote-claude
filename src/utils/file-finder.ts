@@ -152,6 +152,37 @@ export async function findFiles(
 }
 
 /**
+ * 텍스트를 Slack API 제한(75자)에 맞게 축약
+ * Truncate text to fit Slack API limit (75 characters)
+ *
+ * @param filePath - 파일 경로
+ * @param sizeStr - 파일 크기 문자열
+ * @param timeAgo - 수정 시간 문자열
+ * @returns 축약된 텍스트 (최대 70자, 안전 마진 5자)
+ */
+function truncateOptionText(filePath: string, sizeStr: string, timeAgo: string): string {
+  const MAX_LENGTH = 70; // 안전 마진 5자 (Slack 제한 75자)
+  const fileName = path.basename(filePath);
+  const meta = ` (${sizeStr}, ${timeAgo})`;
+  const fullText = `${filePath}${meta}`;
+
+  // 전체 텍스트가 제한 이내면 그대로 반환
+  if (fullText.length <= MAX_LENGTH) {
+    return fullText;
+  }
+
+  // 파일명 + 메타만으로도 초과하면 파일명도 축약
+  if (fileName.length + meta.length > MAX_LENGTH) {
+    const maxFileNameLength = MAX_LENGTH - meta.length - 3; // 3자는 "..." 용
+    const truncatedFileName = fileName.slice(-maxFileNameLength);
+    return `...${truncatedFileName}${meta}`;
+  }
+
+  // 파일명 + 메타는 들어가므로 경로만 축약
+  return `...${fileName}${meta}`;
+}
+
+/**
  * 파일 정보를 Slack 선택 옵션 형식으로 변환
  * Convert file info to Slack select option format
  *
@@ -190,10 +221,13 @@ export function filesToSlackOptions(files: FileInfo[]): any[] {
       sizeStr = `${(file.size / (1024 * 1024)).toFixed(1)}MB`;
     }
 
+    // Slack API 제한(75자)에 맞게 텍스트 축약
+    const displayText = truncateOptionText(file.relativePath, sizeStr, timeAgo);
+
     return {
       text: {
         type: 'plain_text',
-        text: `${file.relativePath} (${sizeStr}, ${timeAgo})`,
+        text: displayText,
       },
       value: file.relativePath,
     };
