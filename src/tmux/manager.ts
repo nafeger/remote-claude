@@ -338,17 +338,17 @@ export class TmuxManager {
     logger.debug(`Prompt (first 200 chars): ${prompt.slice(0, 200)}${prompt.length > 200 ? '...' : ''}`);
 
     // 1. 프롬프트 전송
-    // 멀티라인 메시지는 bracketed paste mode 사용 (줄바꿈 보존)
+    // 멀티라인 메시지는 tmux paste-buffer 사용 (줄바꿈 보존)
     if (prompt.includes('\n')) {
-      logger.info('Multiline prompt detected, using bracketed paste mode');
+      logger.info('Multiline prompt detected, using tmux paste-buffer');
 
-      // Bracketed paste mode: ESC[200~ + text + ESC[201~
-      // 이렇게 하면 readline이 줄바꿈을 텍스트로 처리 (Enter 키가 아님)
-      const bracketedPrompt = `\x1b[200~${prompt}\x1b[201~`;
-      const sendResult = await this.sendKeys(sessionName, bracketedPrompt, true);
-      if (!sendResult.success) {
-        logger.error('Failed to send bracketed prompt');
-        return sendResult;
+      // tmux paste-buffer를 사용하여 텍스트 붙여넣기
+      // 이 방법은 Bracketed Paste Mode의 문제를 피하고
+      // tmux의 네이티브 기능으로 줄바꿈을 올바르게 처리함
+      const pasteResult = await executor.pasteText(sessionName, prompt);
+      if (!pasteResult.success) {
+        logger.error('Failed to paste multiline prompt');
+        return pasteResult;
       }
     } else {
       // 단일 라인 메시지는 기존 방식 사용

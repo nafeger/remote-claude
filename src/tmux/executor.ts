@@ -445,3 +445,75 @@ export async function getSessionInfo(
     attached: attached === '1',
   };
 }
+
+/**
+ * tmux paste-buffer를 사용하여 텍스트 붙여넣기
+ * Paste text using tmux paste-buffer
+ *
+ * @param sessionName - Session name
+ * @param text - Text to paste
+ * @returns TmuxCommandResult
+ *
+ * 동작 방식:
+ * 1. 임시 파일에 텍스트 저장
+ * 2. tmux load-buffer로 버퍼에 로드
+ * 3. tmux paste-buffer로 붙여넣기
+ * 4. 임시 파일 삭제
+ *
+ * 장점:
+ * - Bracketed Paste Mode의 복잡한 escape sequence를 피할 수 있음
+ * - 줄바꿈이 자연스럽게 처리됨
+ * - tmux의 네이티브 기능을 사용하므로 더 안정적
+ */
+export async function pasteText(
+  sessionName: string,
+  text: string
+): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+  const fs = await import('fs');
+  const os = await import('os');
+  const path = await import('path');
+
+  // 1. 임시 파일 생성
+  const tmpDir = os.tmpdir();
+  const tmpFile = path.join(tmpDir, `tmux-paste-${Date.now()}.txt`);
+
+  try {
+    // 2. 텍스트를 임시 파일에 저장
+    logger.debug(`Writing text to temporary file: ${tmpFile}`);
+    fs.writeFileSync(tmpFile, text, 'utf-8');
+
+    // 3. tmux load-buffer로 버퍼에 로드
+    logger.debug(`Loading buffer from file: ${tmpFile}`);
+    const loadResult = await executeTmuxCommand(`tmux load-buffer "${tmpFile}"`);
+    if (!loadResult.success) {
+      logger.error('Failed to load buffer');
+      return loadResult;
+    }
+
+    // 4. tmux paste-buffer로 붙여넣기 (-d: 붙여넣기 후 버퍼 삭제)
+    logger.debug(`Pasting buffer to session: ${sessionName}`);
+    const pasteResult = await executeTmuxCommand(
+      `tmux paste-buffer -t ${sessionName} -d`
+    );
+
+    return pasteResult;
+  } catch (error) {
+    logger.error(`Failed to paste text: ${error}`);
+    return {
+      success: false,
+      output: '',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  } finally {
+    // 5. 임시 파일 삭제
+    try {
+      if (fs.existsSync(tmpFile)) {
+        fs.unlinkSync(tmpFile);
+        logger.debug(`Deleted temporary file: ${tmpFile}`);
+      }
+    } catch (error) {
+      logger.warn(`Failed to delete temporary file: ${error}`);
+    }
+  }
+}
