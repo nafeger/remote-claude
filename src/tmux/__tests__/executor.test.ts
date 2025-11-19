@@ -5,9 +5,10 @@
  * 테스트 대상 (Test targets):
  * - sendArrowKey() - 방향키 전송 함수
  * - executeCommandSequence() - 명령 시퀀스 실행
+ * - sendKeys() - 키 입력 전송 함수
  */
 
-import { sendArrowKey, executeCommandSequence, sendEnter, sendEnterMultiple } from '../executor';
+import { sendArrowKey, executeCommandSequence, sendEnter, sendEnterMultiple, sendKeys } from '../executor';
 import { initLogger, clearLoggerInstance } from '../../utils/logger';
 import { LogLevel } from '../../types';
 import { ParsedSegment } from '../../dsl/parser';
@@ -664,6 +665,107 @@ describe('sendEnterMultiple()', () => {
       const result2 = await sendEnterMultiple(session2, 2);
       expect(result2.success).toBe(true);
       expect(mockedExec).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+/**
+ * Task: sendKeys() 테스트 - 하이픈으로 시작하는 텍스트 전송
+ * Tests for sendKeys() - Send text starting with dash
+ */
+describe('sendKeys()', () => {
+  /**
+   * 정상 경로 - 일반 텍스트 전송
+   * Happy Path - Send normal text
+   */
+  describe('정상 경로 (Happy Path)', () => {
+    it('should send normal text successfully', async () => {
+      const sessionName = 'test-session';
+      const text = 'hello world';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      const result = await sendKeys(sessionName, text, true);
+
+      expect(result.success).toBe(true);
+      expect(mockedExec).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockedExec.mock.calls[0][0];
+      expect(callArgs).toContain('tmux send-keys');
+      expect(callArgs).toContain('-l');
+      expect(callArgs).toContain('hello world');
+    });
+  });
+
+  /**
+   * 경계 조건 - 하이픈으로 시작하는 텍스트
+   * Boundary Conditions - Text starting with dash
+   */
+  describe('경계 조건 (Boundary Conditions)', () => {
+    it('should send text starting with single dash successfully', async () => {
+      const sessionName = 'test-session';
+      const text = '-md 파일들이 여기저이 있고';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      const result = await sendKeys(sessionName, text, true);
+
+      expect(result.success).toBe(true);
+      expect(mockedExec).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockedExec.mock.calls[0][0];
+      expect(callArgs).toContain('tmux send-keys');
+      expect(callArgs).toContain('-t test-session');
+      // -- 구분자가 있어야 플래그 파싱 문제 해결
+      expect(callArgs).toContain('--');
+    });
+
+    it('should send text starting with double dash successfully', async () => {
+      const sessionName = 'test-session';
+      const text = '--help 명령어';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      const result = await sendKeys(sessionName, text, true);
+
+      expect(result.success).toBe(true);
+      expect(mockedExec).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockedExec.mock.calls[0][0];
+      expect(callArgs).toContain('--');
+    });
+
+    it('should send multiline text with lines starting with dash', async () => {
+      const sessionName = 'test-session';
+      const text = '깃허브 공개를 하기 전에\n-md 파일들이 여기저이 있고\n-현재 쓰지 않는 것들도 있는거 같고';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      const result = await sendKeys(sessionName, text, true);
+
+      expect(result.success).toBe(true);
+      // 3줄 + 2개의 Enter = 5번 호출
+      expect(mockedExec).toHaveBeenCalled();
+
+      // 각 라인이 -- 구분자와 함께 전송되었는지 확인
+      const calls = mockedExec.mock.calls;
+      const dashLineCalls = calls.filter(call => call[0].includes('-md') || call[0].includes('-현재'));
+
+      dashLineCalls.forEach(call => {
+        expect(call[0]).toContain('--');
+      });
     });
   });
 });

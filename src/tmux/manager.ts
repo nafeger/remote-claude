@@ -228,11 +228,13 @@ export class TmuxManager {
    *
    * @param sessionName - Session name
    * @param projectPath - Project path
+   * @param force - Force restart even if Claude Code is already running (default: false)
    * @returns TmuxCommandResult
    */
   public async startClaudeCode(
     sessionName: string,
-    projectPath: string
+    projectPath: string,
+    force: boolean = false
   ): Promise<TmuxCommandResult> {
     const logger = getLogger();
     logger.info(`Starting Claude Code in tmux session: ${sessionName}`);
@@ -243,15 +245,37 @@ export class TmuxManager {
       return ensureResult;
     }
 
-    // 2. 히스토리 지우기 (깨끗한 상태로 시작)
+    // 2. force가 아니고 Claude Code가 이미 실행 중이면 스킵
+    if (!force) {
+      const captureResult = await this.capturePane(sessionName, -20);
+      if (captureResult.success && captureResult.output) {
+        // Claude Code 실행 중 표시: 프롬프트 입력 대기 상태 확인
+        // Check if Claude Code is running: look for prompt input state
+        const isRunning =
+          captureResult.output.includes('>') &&
+          (captureResult.output.includes('──────') ||
+           captureResult.output.includes('claude.com') ||
+           captureResult.output.includes('? for shortcuts'));
+
+        if (isRunning) {
+          logger.info('Claude Code is already running, skipping startClaudeCode');
+          return {
+            success: true,
+            output: 'Claude Code is already running',
+          };
+        }
+      }
+    }
+
+    // 3. 히스토리 지우기 (깨끗한 상태로 시작)
     await this.clearHistory(sessionName);
 
-    // 3. 먼저 "claude --continue" 시도
+    // 4. 먼저 "claude --continue" 시도
     logger.info('Trying "claude --continue"...');
     await this.sendKeys(sessionName, 'claude --continue', true);
     await this.sendEnter(sessionName);
 
-    // 4. 2초 대기 후 결과 확인
+    // 5. 2초 대기 후 결과 확인
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const continueResult = await this.capturePane(sessionName, -20);
@@ -261,16 +285,16 @@ export class TmuxManager {
       !continueResult.output.includes('No conversation found to continue');
 
     if (!continueSuccess) {
-      // 5. --continue 실패 시 일반 "claude" 명령 실행
+      // 6. --continue 실패 시 일반 "claude" 명령 실행
       logger.info('"claude --continue" failed, trying "claude"...');
       await this.clearHistory(sessionName);
       await this.sendKeys(sessionName, 'claude', true);
       await this.sendEnter(sessionName);
 
-      // 6. Claude Code 초기화 대기 (7초)
+      // 7. Claude Code 초기화 대기 (7초)
       await new Promise((resolve) => setTimeout(resolve, 7000));
 
-      // 7. 결과 확인
+      // 8. 결과 확인
       const claudeResult = await this.capturePane(sessionName, -20);
       const claudeSuccess = claudeResult.success &&
         claudeResult.output &&

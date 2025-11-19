@@ -156,7 +156,9 @@ export async function sendKeys(
       // 빈 줄도 전송 (Enter만 전송)
       if (line.length > 0) {
         const escapedLine = line.replace(/"/g, '\\"');
-        const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedLine}"`;
+        // -- 구분자 추가: -로 시작하는 텍스트가 플래그로 파싱되는 것을 방지
+        // Add -- delimiter to prevent text starting with - from being parsed as flags
+        const command = `tmux send-keys -t ${sessionName} ${literalFlag} -- "${escapedLine}"`;
         const result = await executeTmuxCommand(command);
 
         if (!result.success) {
@@ -182,7 +184,9 @@ export async function sendKeys(
   // 단일 라인인 경우 기존 방식
   // Single line - use original method
   const escapedKeys = keys.replace(/"/g, '\\"');
-  const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedKeys}"`;
+  // -- 구분자 추가: -로 시작하는 텍스트가 플래그로 파싱되는 것을 방지
+  // Add -- delimiter to prevent text starting with - from being parsed as flags
+  const command = `tmux send-keys -t ${sessionName} ${literalFlag} -- "${escapedKeys}"`;
   return executeTmuxCommand(command);
 }
 
