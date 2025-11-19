@@ -228,11 +228,13 @@ export class TmuxManager {
    *
    * @param sessionName - Session name
    * @param projectPath - Project path
+   * @param force - Force restart even if Claude Code is already running (default: false)
    * @returns TmuxCommandResult
    */
   public async startClaudeCode(
     sessionName: string,
-    projectPath: string
+    projectPath: string,
+    force: boolean = false
   ): Promise<TmuxCommandResult> {
     const logger = getLogger();
     logger.info(`Starting Claude Code in tmux session: ${sessionName}`);
@@ -243,25 +245,74 @@ export class TmuxManager {
       return ensureResult;
     }
 
-    // 2. 히스토리 지우기 (깨끗한 상태로 시작)
+    // 2. force가 아니고 Claude Code가 이미 실행 중이면 스킵
+    if (!force) {
+      const captureResult = await this.capturePane(sessionName, -20);
+      if (captureResult.success && captureResult.output) {
+        // Claude Code 실행 중 표시: 프롬프트 입력 대기 상태 확인
+        // Check if Claude Code is running: look for prompt input state
+        const isRunning =
+          captureResult.output.includes('>') &&
+          (captureResult.output.includes('──────') ||
+           captureResult.output.includes('claude.com') ||
+           captureResult.output.includes('? for shortcuts'));
+
+        if (isRunning) {
+          logger.info('Claude Code is already running, skipping startClaudeCode');
+          return {
+            success: true,
+            output: 'Claude Code is already running',
+          };
+        }
+      }
+    }
+
+    // 3. 히스토리 지우기 (깨끗한 상태로 시작)
     await this.clearHistory(sessionName);
 
-    // 3. "claude --continue" 명령어 전송
-    const sendResult = await this.sendKeys(sessionName, 'claude --continue', true);
-    if (!sendResult.success) {
-      return sendResult;
-    }
+    // 4. 먼저 "claude --continue" 시도
+    logger.info('Trying "claude --continue"...');
+    await this.sendKeys(sessionName, 'claude --continue', true);
+    await this.sendEnter(sessionName);
 
-    // 4. Enter 키 전송
-    const enterResult = await this.sendEnter(sessionName);
-    if (!enterResult.success) {
-      return enterResult;
-    }
-
-    // 5. Claude Code가 시작될 때까지 대기 (2초)
+    // 5. 2초 대기 후 결과 확인
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    logger.info(`Claude Code started in tmux session: ${sessionName}`);
+    const continueResult = await this.capturePane(sessionName, -20);
+    // "No conversation found to continue" 메시지가 없으면 성공
+    const continueSuccess = continueResult.success &&
+      continueResult.output &&
+      !continueResult.output.includes('No conversation found to continue');
+
+    if (!continueSuccess) {
+      // 6. --continue 실패 시 일반 "claude" 명령 실행
+      logger.info('"claude --continue" failed, trying "claude"...');
+      await this.clearHistory(sessionName);
+      await this.sendKeys(sessionName, 'claude', true);
+      await this.sendEnter(sessionName);
+
+      // 7. Claude Code 초기화 대기 (7초)
+      await new Promise((resolve) => setTimeout(resolve, 7000));
+
+      // 8. 결과 확인
+      const claudeResult = await this.capturePane(sessionName, -20);
+      const claudeSuccess = claudeResult.success &&
+        claudeResult.output &&
+        (claudeResult.output.includes('Claude Code') || claudeResult.output.includes('claude.com'));
+
+      if (!claudeSuccess) {
+        logger.error('Failed to start Claude Code with both "claude --continue" and "claude"');
+        return {
+          success: false,
+          output: '',
+          error: 'Failed to start Claude Code. Please check if Claude Code CLI is installed and accessible.',
+        };
+      }
+
+      logger.info('Claude Code started with "claude" command');
+    } else {
+      logger.info('Claude Code started with "claude --continue"');
+    }
 
     return {
       success: true,
@@ -286,16 +337,39 @@ export class TmuxManager {
     logger.info(`Prompt length: ${prompt.length} characters`);
     logger.debug(`Prompt (first 200 chars): ${prompt.slice(0, 200)}${prompt.length > 200 ? '...' : ''}`);
 
-    // 1. 프롬프트 전송 (리터럴 모드)
-    const sendResult = await this.sendKeys(sessionName, prompt, true);
-    if (!sendResult.success) {
-      return sendResult;
+    // 1. 프롬프트 전송
+    // 멀티라인 메시지는 bracketed paste mode 사용 (줄바꿈 보존)
+    if (prompt.includes('\n')) {
+      logger.info('Multiline prompt detected, using bracketed paste mode');
+
+      // Bracketed paste mode: ESC[200~ + text + ESC[201~
+      // 이렇게 하면 readline이 줄바꿈을 텍스트로 처리 (Enter 키가 아님)
+      const bracketedPrompt = `\x1b[200~${prompt}\x1b[201~`;
+      const sendResult = await this.sendKeys(sessionName, bracketedPrompt, true);
+      if (!sendResult.success) {
+        logger.error('Failed to send bracketed prompt');
+        return sendResult;
+      }
+    } else {
+      // 단일 라인 메시지는 기존 방식 사용
+      logger.info('Single-line prompt, using send-keys');
+      const sendResult = await this.sendKeys(sessionName, prompt, true);
+      if (!sendResult.success) {
+        return sendResult;
+      }
     }
 
-    // 2. Enter 키 전송
-    const enterResult = await this.sendEnter(sessionName);
-    if (!enterResult.success) {
-      return enterResult;
+    // 2. Enter 키 2번 전송 (Claude Code 표준 입력 방식: 빈 줄 + Enter = 전송)
+    // 첫 번째 Enter: 현재 입력 줄 종료
+    const firstEnterResult = await this.sendEnter(sessionName);
+    if (!firstEnterResult.success) {
+      return firstEnterResult;
+    }
+
+    // 두 번째 Enter: 빈 줄로 전송 트리거
+    const secondEnterResult = await this.sendEnter(sessionName);
+    if (!secondEnterResult.success) {
+      return secondEnterResult;
     }
 
     // 3. 잠시 대기 (프롬프트가 처리될 시간)
@@ -321,7 +395,7 @@ export class TmuxManager {
   public async captureAndParseOutput(
     sessionName: string,
     firstLines: number = 100,
-    lastLines: number = 50
+    lastLines: number = 80
   ): Promise<CaptureResult | null> {
     const logger = getLogger();
 

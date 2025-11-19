@@ -45,6 +45,12 @@ function generateHelpText(): string {
 
 • \`/cancel\` - 현재 실행 중인 작업 취소
 
+*한글 명령어 지원 (Korean Commands)*
+• \`/ㄴㅅㅁ션\` - \`/state\`와 동일 (상태 확인)
+• \`/애쥐ㅐㅁㅇ\` - \`/download\`와 동일 (파일 다운로드)
+
+※ 한글 자판 상태에서 영어 명령어를 입력했을 때 자동으로 변환됩니다.
+
 *작업 흐름 (Workflow)*
 1. \`/setup\` 으로 채널을 프로젝트에 연결
 2. \`/snippet add\` 로 자주 사용하는 프롬프트 등록 (선택사항)

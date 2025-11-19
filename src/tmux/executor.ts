@@ -156,7 +156,9 @@ export async function sendKeys(
       // 빈 줄도 전송 (Enter만 전송)
       if (line.length > 0) {
         const escapedLine = line.replace(/"/g, '\\"');
-        const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedLine}"`;
+        // -- 구분자 추가: -로 시작하는 텍스트가 플래그로 파싱되는 것을 방지
+        // Add -- delimiter to prevent text starting with - from being parsed as flags
+        const command = `tmux send-keys -t ${sessionName} ${literalFlag} -- "${escapedLine}"`;
         const result = await executeTmuxCommand(command);
 
         if (!result.success) {
@@ -182,7 +184,9 @@ export async function sendKeys(
   // 단일 라인인 경우 기존 방식
   // Single line - use original method
   const escapedKeys = keys.replace(/"/g, '\\"');
-  const command = `tmux send-keys -t ${sessionName} ${literalFlag} "${escapedKeys}"`;
+  // -- 구분자 추가: -로 시작하는 텍스트가 플래그로 파싱되는 것을 방지
+  // Add -- delimiter to prevent text starting with - from being parsed as flags
+  const command = `tmux send-keys -t ${sessionName} ${literalFlag} -- "${escapedKeys}"`;
   return executeTmuxCommand(command);
 }
 
@@ -196,6 +200,56 @@ export async function sendKeys(
 export async function sendEnter(sessionName: string): Promise<TmuxCommandResult> {
   const command = `tmux send-keys -t ${sessionName} Enter`;
   return executeTmuxCommand(command);
+}
+
+/**
+ * tmux 세션에 Enter 키 여러 번 전송
+ * Send Enter key multiple times to tmux session
+ *
+ * @param sessionName - Session name
+ * @param count - Number of times to send Enter key
+ * @returns TmuxCommandResult
+ *
+ * 사용 예시 (Usage examples):
+ * - sendEnterMultiple('my-session', 2) → Enter 키 2번 전송
+ * - sendEnterMultiple('my-session', 0) → 아무 동작 안 함
+ */
+export async function sendEnterMultiple(
+  sessionName: string,
+  count: number
+): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+
+  if (count < 0) {
+    return {
+      success: false,
+      output: '',
+      error: 'Count must be non-negative',
+    };
+  }
+
+  if (count === 0) {
+    logger.debug('Count is 0, skipping Enter key send');
+    return {
+      success: true,
+      output: '',
+    };
+  }
+
+  logger.debug(`Sending Enter key ${count} times to session ${sessionName}`);
+
+  for (let i = 0; i < count; i++) {
+    const result = await sendEnter(sessionName);
+    if (!result.success) {
+      logger.error(`Failed to send Enter key (attempt ${i + 1}/${count}): ${result.error}`);
+      return result;
+    }
+  }
+
+  return {
+    success: true,
+    output: '',
+  };
 }
 
 /**
@@ -303,20 +357,49 @@ export async function executeCommandSequence(
  * Capture pane output from tmux session
  *
  * @param sessionName - Session name
- * @param startLine - Start line (negative for last N lines)
+ * @param startLine - Start line (negative for last N lines, default: -50)
  * @param endLine - End line (optional)
  * @returns TmuxCommandResult with captured output
+ *
+ * 환경 변수 DEFAULT_OUTPUT_LINES로 기본 출력 라인 수 조정 가능 (최소: 10, 최대: 200)
  */
 export async function capturePane(
   sessionName: string,
   startLine?: number,
   endLine?: number
 ): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+
+  // 환경 변수에서 기본 출력 라인 수 읽기
+  // Read default output lines from environment variable
+  let defaultLines = 80; // 기본값
+  const envLines = process.env.DEFAULT_OUTPUT_LINES;
+
+  if (envLines) {
+    const parsed = parseInt(envLines, 10);
+    if (!isNaN(parsed)) {
+      // 최소값(10) 및 최대값(200) 검증
+      // Validate minimum (10) and maximum (200)
+      if (parsed < 10) {
+        logger.warn(`DEFAULT_OUTPUT_LINES too small (${parsed}), using minimum: 10`);
+        defaultLines = 10;
+      } else if (parsed > 200) {
+        logger.warn(`DEFAULT_OUTPUT_LINES too large (${parsed}), using maximum: 200`);
+        defaultLines = 200;
+      } else {
+        defaultLines = parsed;
+      }
+    } else {
+      logger.warn(`Invalid DEFAULT_OUTPUT_LINES value: ${envLines}, using default: 80`);
+    }
+  }
+
   let command = `tmux capture-pane -t ${sessionName} -p`;
 
-  if (startLine !== undefined) {
-    command += ` -S ${startLine}`;
-  }
+  // startLine이 undefined이면 기본값 사용
+  // Use default value if startLine is undefined
+  const effectiveStartLine = startLine !== undefined ? startLine : -defaultLines;
+  command += ` -S ${effectiveStartLine}`;
 
   if (endLine !== undefined) {
     command += ` -E ${endLine}`;

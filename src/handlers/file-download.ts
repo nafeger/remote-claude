@@ -14,6 +14,7 @@ import * as path from 'path';
 import { getLogger } from '../utils/logger';
 import { validateFilePath } from '../utils/file-security';
 import { ChannelConfig } from '../types';
+import { addInteractiveButtons } from '../bot/formatters';
 
 /**
  * 파일 다운로드 핸들러
@@ -50,7 +51,7 @@ export async function handleFileDownload(
       logger.error('Channel config or projectPath is missing');
       await app.client.chat.postMessage({
         channel: channelId,
-        text: '⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+        blocks: addInteractiveButtons('⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.'),
       });
       return;
     }
@@ -79,7 +80,7 @@ export async function handleFileDownload(
       logger.warn(`File validation failed: ${validation.error}`);
       await app.client.chat.postMessage({
         channel: channelId,
-        text: validation.error || '❌ 파일 경로 검증에 실패했습니다.',
+        blocks: addInteractiveButtons(validation.error || '❌ 파일 경로 검증에 실패했습니다.'),
       });
       return;
     }
@@ -88,10 +89,31 @@ export async function handleFileDownload(
     const resolvedPath = validation.resolvedPath!;
     logger.info(`File path validated: ${resolvedPath}`);
 
+    // 3.5. 파일 존재 여부 확인
+    if (!fs.existsSync(resolvedPath)) {
+      logger.warn(`File does not exist: ${resolvedPath}`);
+      await app.client.chat.postMessage({
+        channel: channelId,
+        blocks: addInteractiveButtons(`❌ 파일을 찾을 수 없습니다.\n파일: \`${filePath}\`\n\n경로를 확인해주세요.`),
+      });
+      return;
+    }
+
+    // 3.6. 파일인지 확인 (디렉토리가 아닌지)
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isFile()) {
+      logger.warn(`Path is not a file: ${resolvedPath}`);
+      await app.client.chat.postMessage({
+        channel: channelId,
+        blocks: addInteractiveButtons(`❌ 지정한 경로가 파일이 아닙니다.\n경로: \`${filePath}\`\n\n파일 경로를 입력해주세요.`),
+      });
+      return;
+    }
+
     // 4. 작업 시작 메시지 전송
     await app.client.chat.postMessage({
       channel: channelId,
-      text: `⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``,
+      blocks: addInteractiveButtons(`⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``),
     });
 
     // 5. 파일 스트림 생성
@@ -113,7 +135,7 @@ export async function handleFileDownload(
     // 7. 업로드 성공 메시지 전송
     await app.client.chat.postMessage({
       channel: channelId,
-      text: `✅ 파일 다운로드 완료\n파일: \`${fileName}\``,
+      blocks: addInteractiveButtons(`✅ 파일 다운로드 완료\n파일: \`${fileName}\``),
     });
   } catch (error) {
     // 8. 에러 타입별 처리 및 로깅
@@ -122,8 +144,13 @@ export async function handleFileDownload(
     let errorMessage = '❌ 파일 다운로드 중 오류가 발생했습니다.';
 
     if (error instanceof Error) {
+      // 파일 없음 오류 (ENOENT)
+      if ('code' in error && error.code === 'ENOENT') {
+        logger.error(`File not found: ${error.message}`);
+        errorMessage = `❌ 파일을 찾을 수 없습니다.\n파일: \`${filePath}\`\n\n경로를 확인해주세요.`;
+      }
       // 파일 읽기 권한 오류 (EACCES, EPERM)
-      if ('code' in error && (error.code === 'EACCES' || error.code === 'EPERM')) {
+      else if ('code' in error && (error.code === 'EACCES' || error.code === 'EPERM')) {
         logger.error(`File permission error: ${error.message}`);
         errorMessage = `❌ 파일 읽기 권한이 없습니다.\n파일: \`${filePath}\``;
       }
@@ -144,7 +171,7 @@ export async function handleFileDownload(
 
     await app.client.chat.postMessage({
       channel: channelId,
-      text: errorMessage,
+      blocks: addInteractiveButtons(errorMessage),
     });
   }
 }

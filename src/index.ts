@@ -22,6 +22,8 @@ import { helpHandler } from './bot/commands/help';
 import { unsetupHandler } from './bot/commands/unsetup';
 import { snippetHandler } from './bot/commands/snippet';
 import { handleFileDownload } from './handlers/file-download';
+import { mapKoreanCommand } from './utils/korean-mapper';
+import { addInteractiveButtons, formatAndSendLargeMessage } from './bot/formatters';
 
 /**
  * 메인 애플리케이션 클래스
@@ -93,7 +95,10 @@ class RemoteClaudeApp {
         userId: command.user_id,
         args: [],
       });
-      await say(response);
+      await say({
+        text: response,
+        blocks: addInteractiveButtons(response),
+      });
     });
 
     // /setup 명령어
@@ -110,7 +115,10 @@ class RemoteClaudeApp {
         userId: command.user_id,
         args: [],
       });
-      await say(response);
+      await say({
+        text: response,
+        blocks: addInteractiveButtons(response),
+      });
     });
 
     // /state 명령어 - 작업 큐 상태 통합
@@ -128,7 +136,10 @@ class RemoteClaudeApp {
         userId: command.user_id,
         args,
       });
-      await say(response);
+      await say({
+        text: response,
+        blocks: addInteractiveButtons(response),
+      });
     });
 
     // /download 명령어 - 파일 다운로드
@@ -143,9 +154,11 @@ class RemoteClaudeApp {
       try {
         // 2. 빈 경로 입력 확인
         if (!filePath) {
+          const usageText = '⚠️ 사용법: `/download <filepath>`\n\n예시:\n• `/download logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`';
           await this.app.client.chat.postMessage({
             channel: channelId,
-            text: '⚠️ 사용법: `/download <filepath>`\n\n예시:\n• `/download logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`',
+            text: usageText,
+            blocks: addInteractiveButtons(usageText),
           });
           return;
         }
@@ -154,9 +167,11 @@ class RemoteClaudeApp {
         const channelConfig = this.configStore.getChannel(channelId);
         if (!channelConfig) {
           logger.warn(`/download called in unconfigured channel: ${channelId}`);
+          const setupText = '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.';
           await this.app.client.chat.postMessage({
             channel: channelId,
-            text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+            text: setupText,
+            blocks: addInteractiveButtons(setupText),
           });
           return;
         }
@@ -166,9 +181,11 @@ class RemoteClaudeApp {
         await handleFileDownload(this.app, channelId, channelConfig, filePath);
       } catch (error) {
         logger.error(`/download command error: ${error}`);
+        const errorText = `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`;
         await this.app.client.chat.postMessage({
           channel: channelId,
-          text: `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`,
+          text: errorText,
+          blocks: addInteractiveButtons(errorText),
         });
       }
     });
@@ -191,6 +208,107 @@ class RemoteClaudeApp {
     this.app.command('/cancel', async ({ command, ack, say }) => {
       await ack();
       await this.handleCancelCommand(command.channel_id, command.user_id, say);
+    });
+
+    // 한글 명령어 지원
+    // Korean command support
+
+    // /ㄴㅅㅁ션 명령어 → /state
+    this.app.command('/ㄴㅅㅁ션', async ({ command, ack, say }) => {
+      await ack();
+      const logger = getLogger();
+
+      // 한글 명령어 → 영어 명령어 매핑
+      const mappingResult = mapKoreanCommand('/ㄴㅅㅁ션');
+
+      if (!mappingResult.success) {
+        logger.warn(`Korean command mapping failed: ${mappingResult.error}`);
+        await say(
+          `⚠️ **한글 명령어 매핑 실패**\n\n` +
+          `${mappingResult.error}\n\n` +
+          `**사용 가능한 한글 명령어:**\n` +
+          `• \`/ㄴㅅㅁ션\` → \`/state\` (상태 확인)\n` +
+          `• \`/애쥐ㅐㅁㅇ\` → \`/download\` (파일 다운로드)`
+        );
+        return;
+      }
+
+      logger.info(`Korean command mapped: /ㄴㅅㅁ션 → ${mappingResult.mappedCommand}`);
+
+      // /state 핸들러 호출
+      await this.handleStateCommand(command.channel_id, command.user_id, command.text, say);
+    });
+
+    // /애 명령어 → /download (자모 입력)
+    this.app.command('/애', async ({ command, ack, say }) => {
+      await ack();
+      const logger = getLogger();
+
+      // 한글 명령어 → 영어 명령어 매핑
+      const mappingResult = mapKoreanCommand('/애');
+
+      if (!mappingResult.success) {
+        logger.warn(`Korean command mapping failed: ${mappingResult.error}`);
+        await say(
+          `⚠️ **한글 명령어 매핑 실패**\n\n` +
+          `${mappingResult.error}\n\n` +
+          `**사용 가능한 한글 명령어:**\n` +
+          `• \`/ㄴㅅ\` → \`/state\` (상태 확인)\n` +
+          `• \`/애\` → \`/download\` (파일 다운로드)`
+        );
+        return;
+      }
+
+      logger.info(`Korean command mapped: /애 → ${mappingResult.mappedCommand}`);
+
+      // /download 핸들러와 동일한 로직
+      const channelId = command.channel_id;
+      const filePath = command.text.trim();
+
+      try {
+        // 빈 경로 입력 확인
+        if (!filePath) {
+          await this.app.client.chat.postMessage({
+            channel: channelId,
+            text: '⚠️ 사용법: `/애 <filepath>` 또는 `/download <filepath>`\n\n예시:\n• `/애 logs/app.log`\n• `/download src/index.ts`\n• `/download README.md`',
+          });
+          return;
+        }
+
+        // 채널 설정 확인
+        const channelConfig = this.configStore.getChannel(channelId);
+        if (!channelConfig) {
+          logger.warn(`/애 called in unconfigured channel: ${channelId}`);
+          await this.app.client.chat.postMessage({
+            channel: channelId,
+            text: '⚠️ 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.',
+          });
+          return;
+        }
+
+        // handleFileDownload() 함수 호출
+        logger.info(`/애 command: ${filePath} (channel: ${channelId})`);
+        await handleFileDownload(this.app, channelId, channelConfig, filePath);
+      } catch (error) {
+        logger.error(`/애 command error: ${error}`);
+        await this.app.client.chat.postMessage({
+          channel: channelId,
+          text: `❌ 명령 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
+    });
+
+    // 자모 입력 명령어 지원
+    // Jamo (separated Korean characters) input support
+
+    // /ㄴㅅ 명령어 → /state (자모 입력)
+    this.app.command('/ㄴㅅ', async ({ command, ack, say }) => {
+      await ack();
+      const logger = getLogger();
+      logger.info('Jamo command detected: /ㄴㅅ → /state');
+
+      // /state 핸들러 호출
+      await this.handleStateCommand(command.channel_id, command.user_id, command.text, say);
     });
 
     logger.info('All slash commands registered');
@@ -307,6 +425,92 @@ class RemoteClaudeApp {
   }
 
   /**
+   * 버튼 액션 리스너 등록
+   * Register button action listeners
+   */
+  private registerButtonActions(): void {
+    const logger = getLogger();
+
+    logger.info('Registering button action listeners...');
+
+    // Import button handlers
+    const {
+      handleQuickState,
+      handleQuickDownload,
+      handleDownloadFileModalSubmit,
+      handleQuickCancel,
+      handleSendEnter,
+      handleSendEnterTwice,
+      handleSendUp,
+      handleSendDown,
+      handleSendLeft,
+      handleSendRight,
+    } = require('./bot/interactive-buttons');
+
+    // "📊 상태 확인" 버튼
+    this.app.action('quick_state', async ({ body, ack }) => {
+      await ack();
+      await handleQuickState(this.app, body, this.configStore, this.stateManager, this.jobQueue);
+    });
+
+    // "📥 파일 다운로드" 버튼
+    this.app.action('quick_download', async ({ body, ack }) => {
+      await ack();
+      await handleQuickDownload(this.app, body, this.configStore);
+    });
+
+    // "🚫 작업 취소" 버튼
+    this.app.action('cancel_job', async ({ body, ack }) => {
+      await ack();
+      await handleQuickCancel(this.app, body, this.configStore, this.orchestrator);
+    });
+
+    // "⏎ 엔터" 버튼
+    this.app.action('send_enter', async ({ body, ack }) => {
+      await ack();
+      await handleSendEnter(this.app, body, this.configStore);
+    });
+
+    // "⏎⏎ 엔터*2" 버튼
+    this.app.action('send_enter_twice', async ({ body, ack }) => {
+      await ack();
+      await handleSendEnterTwice(this.app, body, this.configStore);
+    });
+
+    // "↑" 버튼
+    this.app.action('send_up', async ({ body, ack }) => {
+      await ack();
+      await handleSendUp(this.app, body, this.configStore);
+    });
+
+    // "↓" 버튼
+    this.app.action('send_down', async ({ body, ack }) => {
+      await ack();
+      await handleSendDown(this.app, body, this.configStore);
+    });
+
+    // "←" 버튼
+    this.app.action('send_left', async ({ body, ack }) => {
+      await ack();
+      await handleSendLeft(this.app, body, this.configStore);
+    });
+
+    // "→" 버튼
+    this.app.action('send_right', async ({ body, ack }) => {
+      await ack();
+      await handleSendRight(this.app, body, this.configStore);
+    });
+
+    // 파일 다운로드 모달 제출 처리
+    this.app.view('download_file_modal', async ({ ack, body }) => {
+      await ack();
+      await handleDownloadFileModalSubmit(this.app, body, this.configStore);
+    });
+
+    logger.info('Button action listeners registered');
+  }
+
+  /**
    * DSL 입력 처리
    * Handle DSL input
    */
@@ -408,7 +612,7 @@ class RemoteClaudeApp {
 
     // 인자 검증
     if (args.length < 2) {
-      await say(
+      const usageMessage =
         '*사용법 오류*\n\n' +
         '사용법: `/setup <project-name> <project-path>`\n\n' +
         '*예시:*\n' +
@@ -416,8 +620,12 @@ class RemoteClaudeApp {
         '• `/setup frontend ~/workspace/project/frontend`\n\n' +
         '*설명:*\n' +
         '• `<project-name>`: 프로젝트 이름 (알파벳, 숫자, -, _ 만 사용)\n' +
-        '• `<project-path>`: 프로젝트 디렉토리 절대 경로'
-      );
+        '• `<project-path>`: 프로젝트 디렉토리 절대 경로';
+
+      await say({
+        text: usageMessage,
+        blocks: addInteractiveButtons(usageMessage),
+      });
       return;
     }
 
@@ -552,15 +760,21 @@ class RemoteClaudeApp {
       successMessage += `\n이제 멘션 메시지 또는 \`/run\` 명령어로 Claude Code에 작업을 요청할 수 있습니다.\n` +
         `자주 사용하는 프롬프트는 \`/snippet add\` 로 등록하세요.`;
 
-      await say(successMessage);
+      await say({
+        text: successMessage,
+        blocks: addInteractiveButtons(successMessage),
+      });
     } catch (error) {
       logger.error(`Setup failed: ${error}`);
 
-      if (error instanceof Error) {
-        await say(`❌ *설정 실패*\n\n${error.message}`);
-      } else {
-        await say('❌ *설정 실패*\n\n알 수 없는 오류가 발생했습니다.');
-      }
+      const errorMessage = error instanceof Error
+        ? `❌ *설정 실패*\n\n${error.message}`
+        : '❌ *설정 실패*\n\n알 수 없는 오류가 발생했습니다.';
+
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
@@ -579,14 +793,17 @@ class RemoteClaudeApp {
 
     // 인자 검증
     if (args.length === 0) {
-      await say(
+      const usageMessage =
         '⚠️ **사용법 오류**\n\n' +
         '사용법: `/run <snippet-name>`\n\n' +
         '**예시:**\n' +
         '`/run build-test`\n' +
         '`/run analyze-code`\n\n' +
-        '등록된 스니펫 목록 보기: `/snippet list`'
-      );
+        '등록된 스니펫 목록 보기: `/snippet list`';
+      await say({
+        text: usageMessage,
+        blocks: addInteractiveButtons(usageMessage),
+      });
       return;
     }
 
@@ -595,46 +812,63 @@ class RemoteClaudeApp {
     try {
       // 1. 채널 설정 확인
       if (!this.configStore.hasChannel(channelId)) {
-        await say(
+        const noSetupMessage =
           '⚠️ **설정되지 않은 채널**\n\n' +
           '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
-          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.'
-        );
+          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.';
+        await say({
+          text: noSetupMessage,
+          blocks: addInteractiveButtons(noSetupMessage),
+        });
         return;
       }
 
       const channelConfig = this.configStore.getChannel(channelId);
       if (!channelConfig) {
-        await say('❌ 채널 설정을 가져올 수 없습니다.');
+        const errorMessage = '❌ 채널 설정을 가져올 수 없습니다.';
+        await say({
+          text: errorMessage,
+          blocks: addInteractiveButtons(errorMessage),
+        });
         return;
       }
 
       // 2. 스니펫 확인
       if (!this.snippetStore.hasSnippet(snippetName)) {
-        await say(
+        const notFoundMessage =
           `⚠️ **스니펫을 찾을 수 없음**\n\n` +
           `스니펫 \`${snippetName}\`을(를) 찾을 수 없습니다.\n` +
-          '`/snippet list` 명령어로 등록된 스니펫 목록을 확인하세요.'
-        );
+          '`/snippet list` 명령어로 등록된 스니펫 목록을 확인하세요.';
+        await say({
+          text: notFoundMessage,
+          blocks: addInteractiveButtons(notFoundMessage),
+        });
         return;
       }
 
       const prompt = this.snippetStore.getSnippet(snippetName);
       if (!prompt) {
-        await say('❌ 스니펫 내용을 가져올 수 없습니다.');
+        const errorMessage = '❌ 스니펫 내용을 가져올 수 없습니다.';
+        await say({
+          text: errorMessage,
+          blocks: addInteractiveButtons(errorMessage),
+        });
         return;
       }
 
       // 3. 작업 큐에 추가
       const job = this.jobQueue.addJob(channelId, JobType.RUN_SNIPPET, prompt);
 
-      await say(
+      const successMessage =
         `✅ **작업 추가됨**\n\n` +
         `**작업 ID**: ${job.id}\n` +
         `**스니펫**: ${snippetName}\n` +
         `**프로젝트**: ${channelConfig.projectName}\n\n` +
-        '작업이 큐에 추가되었습니다. 곧 실행됩니다.'
-      );
+        '작업이 큐에 추가되었습니다. 곧 실행됩니다.';
+      await say({
+        text: successMessage,
+        blocks: addInteractiveButtons(successMessage),
+      });
 
       // 4. 오케스트레이터 시작 (백그라운드)
       this.orchestrator.startJob(channelId, channelConfig).catch((error) => {
@@ -642,9 +876,11 @@ class RemoteClaudeApp {
       });
     } catch (error) {
       logger.error(`Run command failed: ${error}`);
-      await say(
-        `❌ **실행 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      );
+      const errorMessage = `❌ **실행 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
@@ -663,14 +899,17 @@ class RemoteClaudeApp {
 
     // 인자 검증
     if (args.length === 0) {
-      await say(
+      const usageMessage =
         '⚠️ **사용법 오류**\n\n' +
         '사용법: `/ask <prompt>`\n\n' +
         '**예시:**\n' +
         '`/ask "Build the project and run all tests."`\n' +
         '`/ask "Analyze the performance bottlenecks in src/server.ts"`\n' +
-        '`/ask "Fix the bug in authentication flow"`'
-      );
+        '`/ask "Fix the bug in authentication flow"`';
+      await say({
+        text: usageMessage,
+        blocks: addInteractiveButtons(usageMessage),
+      });
       return;
     }
 
@@ -678,41 +917,54 @@ class RemoteClaudeApp {
 
     // 프롬프트 길이 체크
     if (prompt.length > 10000) {
-      await say(
+      const tooLongMessage =
         `⚠️ **프롬프트가 너무 김**\n\n` +
         `프롬프트 길이: ${prompt.length}자 (최대 10,000자)\n` +
-        '프롬프트를 짧게 줄이거나 스니펫으로 등록하세요.'
-      );
+        '프롬프트를 짧게 줄이거나 스니펫으로 등록하세요.';
+      await say({
+        text: tooLongMessage,
+        blocks: addInteractiveButtons(tooLongMessage),
+      });
       return;
     }
 
     try {
       // 1. 채널 설정 확인
       if (!this.configStore.hasChannel(channelId)) {
-        await say(
+        const noSetupMessage =
           '⚠️ **설정되지 않은 채널**\n\n' +
           '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
-          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.'
-        );
+          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.';
+        await say({
+          text: noSetupMessage,
+          blocks: addInteractiveButtons(noSetupMessage),
+        });
         return;
       }
 
       const channelConfig = this.configStore.getChannel(channelId);
       if (!channelConfig) {
-        await say('❌ 채널 설정을 가져올 수 없습니다.');
+        const errorMessage = '❌ 채널 설정을 가져올 수 없습니다.';
+        await say({
+          text: errorMessage,
+          blocks: addInteractiveButtons(errorMessage),
+        });
         return;
       }
 
       // 2. 작업 큐에 추가
       const job = this.jobQueue.addJob(channelId, JobType.ASK_PROMPT, prompt);
 
-      await say(
+      const successMessage =
         `✅ **작업 추가됨**\n\n` +
         `**작업 ID**: ${job.id}\n` +
         `**프로젝트**: ${channelConfig.projectName}\n` +
         `**프롬프트**: ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}\n\n` +
-        '작업이 큐에 추가되었습니다. 곧 실행됩니다.'
-      );
+        '작업이 큐에 추가되었습니다. 곧 실행됩니다.';
+      await say({
+        text: successMessage,
+        blocks: addInteractiveButtons(successMessage),
+      });
 
       // 3. 오케스트레이터 시작 (백그라운드)
       this.orchestrator.startJob(channelId, channelConfig).catch((error) => {
@@ -720,9 +972,11 @@ class RemoteClaudeApp {
       });
     } catch (error) {
       logger.error(`Ask command failed: ${error}`);
-      await say(
-        `❌ **실행 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      );
+      const errorMessage = `❌ **실행 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
@@ -741,7 +995,11 @@ class RemoteClaudeApp {
     try {
       // 채널 설정 확인
       if (!this.configStore.hasChannel(channelId)) {
-        await say('⚠️ 설정되지 않은 채널입니다.');
+        const noSetupMessage = '⚠️ 설정되지 않은 채널입니다.';
+        await say({
+          text: noSetupMessage,
+          blocks: addInteractiveButtons(noSetupMessage),
+        });
         return;
       }
 
@@ -749,17 +1007,25 @@ class RemoteClaudeApp {
       const cancelled = await this.orchestrator.cancelJob(channelId);
 
       if (cancelled) {
-        await say(
-          '✅ **작업 취소 완료**\n\n현재 실행 중인 작업이 취소되었습니다.'
-        );
+        const successMessage = '✅ **작업 취소 완료**\n\n현재 실행 중인 작업이 취소되었습니다.';
+        await say({
+          text: successMessage,
+          blocks: addInteractiveButtons(successMessage),
+        });
       } else {
-        await say('⚠️ 취소할 작업이 없습니다.');
+        const noJobMessage = '⚠️ 취소할 작업이 없습니다.';
+        await say({
+          text: noJobMessage,
+          blocks: addInteractiveButtons(noJobMessage),
+        });
       }
     } catch (error) {
       logger.error(`Cancel command failed: ${error}`);
-      await say(
-        `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      );
+      const errorMessage = `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`;
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
@@ -776,15 +1042,15 @@ class RemoteClaudeApp {
     const logger = getLogger();
     logger.info(`Status command from user ${userId} in channel ${channelId}`);
 
-    // 출력 라인 수 파싱 (기본값: 30줄)
-    // Parse output line count (default: 30 lines)
+    // 출력 라인 수 파싱 (기본값: 80줄)
+    // Parse output line count (default: 80 lines)
     const args = text.trim().split(/\s+/);
-    let lineCount = args.length > 0 && args[0] ? parseInt(args[0], 10) : 30;
+    let lineCount = args.length > 0 && args[0] ? parseInt(args[0], 10) : 80;
 
     // 유효성 검증 (1-200 범위)
     // Validate range (1-200)
     if (isNaN(lineCount) || lineCount < 1) {
-      lineCount = 30;
+      lineCount = 80;
     } else if (lineCount > 200) {
       lineCount = 200;
     }
@@ -796,19 +1062,26 @@ class RemoteClaudeApp {
     try {
       // 채널 설정 확인
       if (!this.configStore.hasChannel(channelId)) {
-        await say(
+        const noSetupMessage =
           '⚠️ **설정되지 않은 채널**\n\n' +
           '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
           '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.\n\n' +
-          'ℹ️  도움말: `/help` 명령어로 사용 가능한 명령어를 확인하세요.'
-        );
+          'ℹ️  도움말: `/help` 명령어로 사용 가능한 명령어를 확인하세요.';
+        await say({
+          text: noSetupMessage,
+          blocks: addInteractiveButtons(noSetupMessage),
+        });
         return;
       }
 
       // 채널 정보 가져오기
       const channelConfig = this.configStore.getChannel(channelId);
       if (!channelConfig) {
-        await say('❌ 채널 정보를 가져올 수 없습니다.');
+        const errorMessage = '❌ 채널 정보를 가져올 수 없습니다.';
+        await say({
+          text: errorMessage,
+          blocks: addInteractiveButtons(errorMessage),
+        });
         return;
       }
 
@@ -899,14 +1172,22 @@ class RemoteClaudeApp {
         statusMessage += `⚠️ 화면 캡처 실패: ${captureError instanceof Error ? captureError.message : '알 수 없는 오류'}`;
       }
 
-      await say({
-        text: statusMessage,
+      // 대용량 메시지 분할 처리 (PRD FR-2.2: 2500자 기준)
+      // Split large messages (PRD FR-2.2: 2500 char limit)
+      // 백틱 변환 + 코드 블록 감싸기 + 분할 표시 + 순차 전송
+      await formatAndSendLargeMessage(this.app, channelId, statusMessage, {
+        maxLength: 2500,
+        wrapCodeBlock: true,
+        addIndicators: true,
+        delayMs: 500,
       });
     } catch (error) {
       logger.error(`Status command failed: ${error}`);
-      await say(
-        `❌ **상태 조회 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`
-      );
+      const errorMessage = `❌ **상태 조회 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`;
+      await say({
+        text: errorMessage,
+        blocks: addInteractiveButtons(errorMessage),
+      });
     }
   }
 
@@ -951,6 +1232,9 @@ class RemoteClaudeApp {
 
       // 메시지 리스너 등록
       this.registerMessageListeners();
+
+      // 버튼 액션 리스너 등록
+      this.registerButtonActions();
 
       // 상태 복구 실행
       await this.executeStateRecovery();

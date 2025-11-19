@@ -14,6 +14,24 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+/**
+ * blocks 형식의 메시지에서 텍스트 내용을 확인하는 헬퍼 함수
+ */
+function expectBlocksContaining(text: string) {
+  return expect.objectContaining({
+    channel: expect.any(String),
+    blocks: expect.arrayContaining([
+      expect.objectContaining({
+        type: 'section',
+        text: expect.objectContaining({
+          type: 'mrkdwn',
+          text: expect.stringContaining(text),
+        }),
+      }),
+    ]),
+  });
+}
+
 // Slack App Mock 타입 정의
 interface MockSlackApp {
   client: {
@@ -127,10 +145,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 작업 시작 메시지 전송 확인
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('⏳ 파일을 다운로드하는 중입니다'),
-        })
+        expectBlocksContaining('⏳ 파일을 다운로드하는 중입니다')
       );
 
       // Assert: files.uploadV2 호출 확인
@@ -145,10 +160,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 완료 메시지 전송 확인
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('✅ 파일 다운로드 완료'),
-        })
+        expectBlocksContaining('✅ 파일 다운로드 완료')
       );
 
       // Assert: 총 3번 호출 (시작 메시지 + 완료 메시지)
@@ -183,10 +195,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 에러 메시지 전송 확인
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('채널 설정을 찾을 수 없습니다'),
-        })
+        expectBlocksContaining('채널 설정을 찾을 수 없습니다')
       );
 
       // Assert: files.uploadV2는 호출되지 않음
@@ -202,10 +211,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 검증 실패 메시지 전송
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('프로젝트 디렉토리 외부 파일은 접근할 수 없습니다'),
-        })
+        expectBlocksContaining('프로젝트 디렉토리 외부 파일은 접근할 수 없습니다')
       );
 
       // Assert: files.uploadV2는 호출되지 않음
@@ -221,10 +227,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 보안 에러 메시지 전송
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('보안상 민감한 파일은 다운로드할 수 없습니다'),
-        })
+        expectBlocksContaining('보안상 민감한 파일은 다운로드할 수 없습니다')
       );
 
       // Assert: files.uploadV2는 호출되지 않음
@@ -240,10 +243,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 파일 없음 에러 메시지
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('파일을 찾을 수 없습니다'),
-        })
+        expectBlocksContaining('파일을 찾을 수 없습니다')
       );
 
       // Assert: files.uploadV2는 호출되지 않음
@@ -264,10 +264,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 업로드 실패 에러 메시지
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('파일 업로드에 실패했습니다'),
-        })
+        expectBlocksContaining('파일 업로드에 실패했습니다')
       );
     });
 
@@ -282,10 +279,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 검증 실패 메시지
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('파일 경로를 입력해주세요'),
-        })
+        expectBlocksContaining('파일 경로를 입력해주세요')
       );
     });
 
@@ -299,10 +293,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 디렉토리 에러 메시지
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('디렉토리는 다운로드할 수 없습니다'),
-        })
+        expectBlocksContaining('디렉토리는 다운로드할 수 없습니다')
       );
     });
 
@@ -320,10 +311,7 @@ describe('handleFileDownload()', () => {
 
       // Assert: 크기 초과 에러 메시지
       expect(mockApp.client.chat.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: channelId,
-          text: expect.stringContaining('파일 크기가 제한을 초과했습니다'),
-        })
+        expectBlocksContaining('파일 크기가 제한을 초과했습니다')
       );
     });
   });

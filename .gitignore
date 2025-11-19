@@ -36,3 +36,6 @@ tests/system/test-project/
 # Temporary files
 *.tmp
 tmp/
+
+# User configuration
+.remote-claude/

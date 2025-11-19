@@ -3,6 +3,16 @@
  * Slack message formatting utilities
  */
 
+import {
+  convertBackticks,
+  splitMessage,
+  addSplitIndicators,
+  wrapInCodeBlocks,
+  sendSplitMessages,
+  type SplitMessageResult,
+} from '../utils/message-splitter';
+import type { App } from '@slack/bolt';
+
 /**
  * 코드 블록 포맷팅
  * Format text as code block
@@ -225,7 +235,7 @@ export function formatTable(data: Record<string, string>): string {
 export function formatOutputSummary(
   output: string,
   firstLines: number = 100,
-  lastLines: number = 50
+  lastLines: number = 80
 ): { formatted: string; isTruncated: boolean } {
   const lines = output.split('\n');
   const totalLines = lines.length;
@@ -411,4 +421,151 @@ export function formatDslExecutionError(error: string, failedCommand?: string): 
   errorMsg.push('', formatInfo('tmux 세션 상태를 확인하고 다시 시도해주세요.'));
 
   return errorMsg.join('\n');
+}
+
+// ============================================================================
+// 대용량 메시지 분할 및 전송 (message-splitter 통합)
+// Large message splitting and sending (message-splitter integration)
+// ============================================================================
+
+/**
+ * 메시지 분할 및 전송 파이프라인
+ * Message splitting and sending pipeline
+ *
+ * @param app - Slack Bolt App 인스턴스
+ * @param channelId - Slack 채널 ID
+ * @param content - 전송할 메시지 내용
+ * @param options - 옵션 (maxLength, wrapCodeBlock, addIndicators)
+ * @returns Promise<void>
+ * @description 대용량 메시지를 처리하는 전체 파이프라인 (백틱 변환 → 분할 → 표시 추가 → 코드 블록 → 전송)
+ */
+export async function formatAndSendLargeMessage(
+  app: App,
+  channelId: string,
+  content: string,
+  options: {
+    maxLength?: number;
+    wrapCodeBlock?: boolean;
+    addIndicators?: boolean;
+    delayMs?: number;
+  } = {}
+): Promise<void> {
+  const {
+    maxLength = 2500,
+    wrapCodeBlock = true,
+    addIndicators = true,
+    delayMs = 500,
+  } = options;
+
+  // 1. 백틱 충돌 방지 변환
+  let processedContent = convertBackticks(content);
+
+  // 2. 메시지 분할
+  const splitResult = splitMessage(processedContent, maxLength);
+  let messages = splitResult.messages;
+
+  // 3. 분할 표시 추가 (옵션)
+  if (addIndicators && messages.length > 1) {
+    messages = addSplitIndicators(messages);
+  }
+
+  // 4. 코드 블록으로 감싸기 (옵션)
+  if (wrapCodeBlock) {
+    messages = wrapInCodeBlocks(messages);
+  }
+
+  // 5. 메시지 전송
+  await sendSplitMessages(app, channelId, messages, delayMs);
+}
+
+// Re-export message-splitter functions for convenience
+export {
+  convertBackticks,
+  splitMessage,
+  addSplitIndicators,
+  wrapInCodeBlocks,
+  sendSplitMessages,
+  type SplitMessageResult,
+};
+
+// ============================================================================
+// 인터랙티브 버튼 UI (Interactive Button UI)
+// ============================================================================
+
+/**
+ * 메시지에 인터랙티브 버튼 블록을 추가합니다.
+ * Adds interactive button blocks to a message.
+ *
+ * 모든 봇 응답 메시지에 9개의 인터랙티브 버튼을 자동으로 추가하여,
+ * 사용자가 타이핑 없이 즉시 다음 액션을 수행할 수 있도록 합니다.
+ *
+ * @param text - 메시지 텍스트 (Markdown 형식 지원)
+ * @returns Slack Block Kit 형식의 blocks 배열
+ *
+ * @example
+ * ```typescript
+ * // 기존: 텍스트만 전송
+ * await app.client.chat.postMessage({
+ *   channel: channelId,
+ *   text: '✅ 작업 완료',
+ * });
+ *
+ * // 변경: 버튼과 함께 전송
+ * await app.client.chat.postMessage({
+ *   channel: channelId,
+ *   blocks: addInteractiveButtons('✅ 작업 완료'),
+ * });
+ * ```
+ *
+ * @description
+ * 반환되는 blocks 배열 구조:
+ * 1. Section 블록 - 메시지 텍스트 표시
+ * 2. Actions 블록 - 5개 버튼 (한 줄)
+ *
+ * 버튼 레이아웃:
+ * [📊 상태] [📥 파일] [↓] [→] [⏎]
+ */
+export function addInteractiveButtons(text: string): any[] {
+  return [
+    // 1. 텍스트 섹션 블록
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: text,
+      },
+    },
+    // 2. Actions 블록 - 5개 버튼 (한 줄)
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📊 상태' },
+          action_id: 'quick_state',
+          style: 'primary',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '📥 파일' },
+          action_id: 'quick_download',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '↓' },
+          action_id: 'send_down',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '→' },
+          action_id: 'send_right',
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '⏎' },
+          action_id: 'send_enter',
+        },
+      ],
+    },
+  ];
 }
