@@ -17,7 +17,7 @@
     "url": "git+https://github.com/dh1789/remote-claude.git"
   },
   "keywords": ["slack", "claude-code", "tmux", "remote-control", "ai"],
-  "author": "",
+  "author": "dh1789",
   "license": "ISC",
   "engines": {
     "node": ">=18.0.0"

@@ -437,4 +437,8 @@ npm run build
 
 ## 라이선스
 
-MIT
+이 프로젝트는 [ISC 라이선스](LICENSE)에 따라 배포됩니다.
+
+### 서드파티 라이선스
+
+이 프로젝트는 다양한 오픈소스 라이브러리를 사용합니다. 자세한 내용은 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)를 참조하세요.
