@@ -21,6 +21,7 @@ import {
   formatDslMixedCharError,
   formatDslExecutionError,
   addInteractiveButtons,
+  formatAndSendLargeMessage,
 } from '../bot/formatters';
 import {
   parseInteractiveCommand,
@@ -238,9 +239,12 @@ export class JobOrchestrator {
       outputFormatted;
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
-        blocks: addInteractiveButtons(message),
+      // 대용량 메시지 분할 전송 (Slack 3000자 제한 대응)
+      await formatAndSendLargeMessage(this.slackApp, channelId, message, {
+        maxLength: 2500,
+        wrapCodeBlock: true,
+        addIndicators: true,
+        delayMs: 500,
       });
     } catch (error) {
       getLogger().error(`Failed to send completion message: ${error}`);
@@ -690,9 +694,12 @@ export class JobOrchestrator {
       formatCodeBlock(output);
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
-        blocks: addInteractiveButtons(message),
+      // 대용량 메시지 분할 전송 (Slack 3000자 제한 대응)
+      await formatAndSendLargeMessage(this.slackApp, channelId, message, {
+        maxLength: 2500,
+        wrapCodeBlock: true,
+        addIndicators: true,
+        delayMs: 500,
       });
     } catch (error) {
       getLogger().error(`Failed to send DSL completion message: ${error}`);
