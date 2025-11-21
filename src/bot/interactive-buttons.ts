@@ -15,6 +15,7 @@ import { JobQueue } from '../queue/queue';
 import { JobOrchestrator } from '../queue/orchestrator';
 import { processCaptureResult } from '../tmux/parser';
 import { handleFileDownload } from '../handlers/file-download';
+import { sendSlackMessage } from '../utils/slack-messenger';
 
 /**
  * 빠른 작업 버튼 생성
@@ -143,12 +144,11 @@ export async function handleQuickState(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ **설정되지 않은 채널**\n\n' +
-          '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
-          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.\n\n' +
-          'ℹ️  도움말: `/help` 명령어로 사용 가능한 명령어를 확인하세요.',
+      await sendSlackMessage(app, channelId, '⚠️ **설정되지 않은 채널**\n\n' +
+        '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
+        '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.\n\n' +
+        'ℹ️  도움말: `/help` 명령어로 사용 가능한 명령어를 확인하세요.', {
+        autoSplit: false,
       });
       return;
     }
@@ -156,9 +156,8 @@ export async function handleQuickState(
     // 채널 정보 가져오기
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 정보를 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 정보를 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -250,9 +249,8 @@ export async function handleQuickState(
       try {
         const { addInteractiveButtons } = await import('../bot/formatters');
         const errorMessage = `❌ **상태 조회 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`;
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: errorMessage,
+        await sendSlackMessage(app, channelId, errorMessage, {
+          autoSplit: false,
           blocks: addInteractiveButtons(errorMessage),
         });
       } catch (slackError) {
@@ -287,20 +285,18 @@ export async function handleQuickDownload(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ **설정되지 않은 채널**\n\n' +
-          '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
-          '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.',
+      await sendSlackMessage(app, channelId, '⚠️ **설정되지 않은 채널**\n\n' +
+        '이 채널은 아직 프로젝트에 연결되지 않았습니다.\n' +
+        '먼저 `/setup <project-name> <project-path>` 명령어로 채널을 설정하세요.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 정보를 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 정보를 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -313,10 +309,9 @@ export async function handleQuickDownload(
     });
 
     if (files.length === 0) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ **파일을 찾을 수 없습니다.**\n\n' +
-          '프로젝트에서 `.md`, `.json`, `.txt` 등의 파일을 찾을 수 없습니다.',
+      await sendSlackMessage(app, channelId, '⚠️ **파일을 찾을 수 없습니다.**\n\n' +
+        '프로젝트에서 `.md`, `.json`, `.txt` 등의 파일을 찾을 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -386,9 +381,8 @@ export async function handleQuickDownload(
     logger.error(`Quick download button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **파일 다운로드 모달 열기 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
+        await sendSlackMessage(app, channelId, `❌ **파일 다운로드 모달 열기 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -427,9 +421,8 @@ export async function handleDownloadFileModalSubmit(
     // 채널 설정 가져오기
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -441,9 +434,8 @@ export async function handleDownloadFileModalSubmit(
     logger.error(`Download file modal submit error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **파일 다운로드 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`,
+        await sendSlackMessage(app, channelId, `❌ **파일 다운로드 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -489,9 +481,8 @@ export async function handleQuickCancel(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -500,23 +491,20 @@ export async function handleQuickCancel(
     const cancelled = await orchestrator.cancelJob(channelId);
 
     if (cancelled) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ **작업 취소 완료**\n\n현재 실행 중인 작업이 취소되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ **작업 취소 완료**\n\n현재 실행 중인 작업이 취소되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 취소할 작업이 없습니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 취소할 작업이 없습니다.', {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Quick cancel button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **작업 취소 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -549,18 +537,16 @@ export async function handleSendEnter(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -569,23 +555,20 @@ export async function handleSendEnter(
     const result = await sendEnter(channelConfig.tmuxSession);
 
     if (result.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ Enter 키가 전송되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ Enter 키가 전송되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **Enter 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **Enter 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Send Enter button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -618,18 +601,16 @@ export async function handleSendEnterTwice(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -637,33 +618,29 @@ export async function handleSendEnterTwice(
     // Enter 키 2번 전송
     const result1 = await sendEnter(channelConfig.tmuxSession);
     if (!result1.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **Enter 키 전송 실패**\n\n${result1.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **Enter 키 전송 실패**\n\n${result1.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
       return;
     }
 
     const result2 = await sendEnter(channelConfig.tmuxSession);
     if (!result2.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **Enter 키 전송 실패 (2번째)**\n\n${result2.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **Enter 키 전송 실패 (2번째)**\n\n${result2.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
       return;
     }
 
-    await app.client.chat.postMessage({
-      channel: channelId,
-      text: '✅ Enter 키가 2번 전송되었습니다.',
+    await sendSlackMessage(app, channelId, '✅ Enter 키가 2번 전송되었습니다.', {
+      autoSplit: false,
     });
   } catch (error) {
     logger.error(`Send Enter Twice button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **Enter 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -696,18 +673,16 @@ export async function handleSendUp(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -716,23 +691,20 @@ export async function handleSendUp(
     const result = await sendArrowKey(channelConfig.tmuxSession, 'Up');
 
     if (result.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ ↑ 키가 전송되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ ↑ 키가 전송되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **↑ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **↑ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Send Up button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **↑ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **↑ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -765,18 +737,16 @@ export async function handleSendDown(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -785,23 +755,20 @@ export async function handleSendDown(
     const result = await sendArrowKey(channelConfig.tmuxSession, 'Down');
 
     if (result.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ ↓ 키가 전송되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ ↓ 키가 전송되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **↓ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **↓ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Send Down button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **↓ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **↓ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -834,18 +801,16 @@ export async function handleSendLeft(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -854,23 +819,20 @@ export async function handleSendLeft(
     const result = await sendArrowKey(channelConfig.tmuxSession, 'Left');
 
     if (result.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ ← 키가 전송되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ ← 키가 전송되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **← 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **← 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Send Left button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **← 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **← 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
@@ -903,18 +865,16 @@ export async function handleSendRight(
   try {
     // 채널 설정 확인
     if (!configStore.hasChannel(channelId)) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '⚠️ 설정되지 않은 채널입니다.',
+      await sendSlackMessage(app, channelId, '⚠️ 설정되지 않은 채널입니다.', {
+        autoSplit: false,
       });
       return;
     }
 
     const channelConfig = configStore.getChannel(channelId);
     if (!channelConfig) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '❌ 채널 설정을 가져올 수 없습니다.',
+      await sendSlackMessage(app, channelId, '❌ 채널 설정을 가져올 수 없습니다.', {
+        autoSplit: false,
       });
       return;
     }
@@ -923,23 +883,20 @@ export async function handleSendRight(
     const result = await sendArrowKey(channelConfig.tmuxSession, 'Right');
 
     if (result.success) {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: '✅ → 키가 전송되었습니다.',
+      await sendSlackMessage(app, channelId, '✅ → 키가 전송되었습니다.', {
+        autoSplit: false,
       });
     } else {
-      await app.client.chat.postMessage({
-        channel: channelId,
-        text: `❌ **→ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`,
+      await sendSlackMessage(app, channelId, `❌ **→ 키 전송 실패**\n\n${result.error || '알 수 없는 오류'}`, {
+        autoSplit: false,
       });
     }
   } catch (error) {
     logger.error(`Send Right button handler error: ${error}`);
     if (channelId) {
       try {
-        await app.client.chat.postMessage({
-          channel: channelId,
-          text: `❌ **→ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        await sendSlackMessage(app, channelId, `❌ **→ 키 전송 실패**\n\n${error instanceof Error ? error.message : '알 수 없는 오류'}`, {
+          autoSplit: false,
         });
       } catch (slackError) {
         logger.error(`Failed to send error message to Slack: ${slackError}`);
