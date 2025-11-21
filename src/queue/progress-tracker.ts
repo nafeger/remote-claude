@@ -17,7 +17,6 @@ import {
   formatError,
   addInteractiveButtons,
 } from '../bot/formatters';
-import { sendSlackMessage } from '../utils/slack-messenger';
 
 /**
  * 진행 상황 상태 타입

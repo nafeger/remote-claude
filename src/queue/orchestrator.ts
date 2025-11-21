@@ -23,6 +23,7 @@ import {
   addInteractiveButtons,
   formatAndSendLargeMessage,
 } from '../bot/formatters';
+import { sendSlackMessage } from '../utils/slack-messenger';
 import {
   parseInteractiveCommand,
   ParseResult,
@@ -172,8 +173,8 @@ export class JobOrchestrator {
       formatCodeBlock(promptPreview);
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
@@ -270,8 +271,8 @@ export class JobOrchestrator {
       formatCodeBlock(errorMessage);
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
@@ -491,8 +492,8 @@ export class JobOrchestrator {
     }
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
@@ -537,8 +538,8 @@ export class JobOrchestrator {
     message += '\n\n' + formatDslGuide();
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
@@ -560,8 +561,8 @@ export class JobOrchestrator {
     const message = formatDslExecutionError(error);
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
@@ -716,8 +717,8 @@ export class JobOrchestrator {
     const message = formatDslGuide();
 
     try {
-      await this.slackApp.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(this.slackApp, channelId, message, {
+        autoSplit: false,
         blocks: addInteractiveButtons(message),
       });
     } catch (error) {
