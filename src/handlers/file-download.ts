@@ -15,6 +15,7 @@ import { getLogger } from '../utils/logger';
 import { validateFilePath } from '../utils/file-security';
 import { ChannelConfig } from '../types';
 import { addInteractiveButtons } from '../bot/formatters';
+import { sendSlackMessage } from '../utils/slack-messenger';
 
 /**
  * 파일 다운로드 핸들러
@@ -49,8 +50,8 @@ export async function handleFileDownload(
     // 방어적 프로그래밍: channelConfig와 projectPath 검증
     if (!channelConfig || !channelConfig.projectPath) {
       logger.error('Channel config or projectPath is missing');
-      await app.client.chat.postMessage({
-        channel: channelId,
+      await sendSlackMessage(app, channelId, '⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.', {
+        autoSplit: false,
         blocks: addInteractiveButtons('⚠️ 채널 설정을 찾을 수 없습니다. 먼저 `/setup` 명령으로 프로젝트를 설정해주세요.'),
       });
       return;
@@ -78,9 +79,10 @@ export async function handleFileDownload(
     // 3. 검증 실패 시 에러 메시지 전송 및 종료
     if (!validation.valid) {
       logger.warn(`File validation failed: ${validation.error}`);
-      await app.client.chat.postMessage({
-        channel: channelId,
-        blocks: addInteractiveButtons(validation.error || '❌ 파일 경로 검증에 실패했습니다.'),
+      const errorMsg = validation.error || '❌ 파일 경로 검증에 실패했습니다.';
+      await sendSlackMessage(app, channelId, errorMsg, {
+        autoSplit: false,
+        blocks: addInteractiveButtons(errorMsg),
       });
       return;
     }
@@ -92,9 +94,10 @@ export async function handleFileDownload(
     // 3.5. 파일 존재 여부 확인
     if (!fs.existsSync(resolvedPath)) {
       logger.warn(`File does not exist: ${resolvedPath}`);
-      await app.client.chat.postMessage({
-        channel: channelId,
-        blocks: addInteractiveButtons(`❌ 파일을 찾을 수 없습니다.\n파일: \`${filePath}\`\n\n경로를 확인해주세요.`),
+      const notFoundMsg = `❌ 파일을 찾을 수 없습니다.\n파일: \`${filePath}\`\n\n경로를 확인해주세요.`;
+      await sendSlackMessage(app, channelId, notFoundMsg, {
+        autoSplit: false,
+        blocks: addInteractiveButtons(notFoundMsg),
       });
       return;
     }
@@ -103,17 +106,19 @@ export async function handleFileDownload(
     const stats = fs.statSync(resolvedPath);
     if (!stats.isFile()) {
       logger.warn(`Path is not a file: ${resolvedPath}`);
-      await app.client.chat.postMessage({
-        channel: channelId,
-        blocks: addInteractiveButtons(`❌ 지정한 경로가 파일이 아닙니다.\n경로: \`${filePath}\`\n\n파일 경로를 입력해주세요.`),
+      const notFileMsg = `❌ 지정한 경로가 파일이 아닙니다.\n경로: \`${filePath}\`\n\n파일 경로를 입력해주세요.`;
+      await sendSlackMessage(app, channelId, notFileMsg, {
+        autoSplit: false,
+        blocks: addInteractiveButtons(notFileMsg),
       });
       return;
     }
 
     // 4. 작업 시작 메시지 전송
-    await app.client.chat.postMessage({
-      channel: channelId,
-      blocks: addInteractiveButtons(`⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``),
+    const startMsg = `⏳ 파일을 다운로드하는 중입니다...\n파일: \`${filePath}\``;
+    await sendSlackMessage(app, channelId, startMsg, {
+      autoSplit: false,
+      blocks: addInteractiveButtons(startMsg),
     });
 
     // 5. 파일 스트림 생성
@@ -133,9 +138,10 @@ export async function handleFileDownload(
     logger.info(`File uploaded successfully: ${fileName} (upload_id: ${(uploadResult as any).file?.id || 'unknown'})`);
 
     // 7. 업로드 성공 메시지 전송
-    await app.client.chat.postMessage({
-      channel: channelId,
-      blocks: addInteractiveButtons(`✅ 파일 다운로드 완료\n파일: \`${fileName}\``),
+    const successMsg = `✅ 파일 다운로드 완료\n파일: \`${fileName}\``;
+    await sendSlackMessage(app, channelId, successMsg, {
+      autoSplit: false,
+      blocks: addInteractiveButtons(successMsg),
     });
   } catch (error) {
     // 8. 에러 타입별 처리 및 로깅
@@ -169,8 +175,8 @@ export async function handleFileDownload(
       errorMessage = `❌ 파일 다운로드 중 알 수 없는 오류가 발생했습니다.`;
     }
 
-    await app.client.chat.postMessage({
-      channel: channelId,
+    await sendSlackMessage(app, channelId, errorMessage, {
+      autoSplit: false,
       blocks: addInteractiveButtons(errorMessage),
     });
   }
