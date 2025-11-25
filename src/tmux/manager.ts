@@ -343,18 +343,22 @@ export class TmuxManager {
       logger.info('Multiline prompt detected, using tmux paste-buffer');
 
       // tmux paste-buffer를 사용하여 텍스트 붙여넣기
+      // sendEnterAfter=true: paste 후 자동으로 Enter 전송 (무한 대기 방지)
       // 이 방법은 Bracketed Paste Mode의 문제를 피하고
       // tmux의 네이티브 기능으로 줄바꿈을 올바르게 처리함
-      const pasteResult = await executor.pasteText(sessionName, prompt);
+      const pasteResult = await executor.pasteText(sessionName, prompt, true);
       if (!pasteResult.success) {
         logger.error('Failed to paste multiline prompt');
         return pasteResult;
       }
 
-      // tmux paste-buffer가 완전히 완료될 때까지 대기
-      // paste 작업이 완료되기 전에 Enter 키가 전송되는 것을 방지
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      logger.debug('Waited 200ms for paste operation to complete');
+      // pasteText()에서 이미 Enter를 한 번 전송했으므로
+      // Claude Code 표준 입력 방식에 맞춰 Enter 한 번만 더 전송
+      logger.debug('Sending additional Enter for Claude Code multiline input');
+      const secondEnterResult = await this.sendEnter(sessionName);
+      if (!secondEnterResult.success) {
+        return secondEnterResult;
+      }
     } else {
       // 단일 라인 메시지는 기존 방식 사용
       logger.info('Single-line prompt, using send-keys');
@@ -362,22 +366,20 @@ export class TmuxManager {
       if (!sendResult.success) {
         return sendResult;
       }
+
+      // 단일 라인: Enter 2번 전송 (Claude Code 표준 입력 방식)
+      const firstEnterResult = await this.sendEnter(sessionName);
+      if (!firstEnterResult.success) {
+        return firstEnterResult;
+      }
+
+      const secondEnterResult = await this.sendEnter(sessionName);
+      if (!secondEnterResult.success) {
+        return secondEnterResult;
+      }
     }
 
-    // 2. Enter 키 2번 전송 (Claude Code 표준 입력 방식: 빈 줄 + Enter = 전송)
-    // 첫 번째 Enter: 현재 입력 줄 종료
-    const firstEnterResult = await this.sendEnter(sessionName);
-    if (!firstEnterResult.success) {
-      return firstEnterResult;
-    }
-
-    // 두 번째 Enter: 빈 줄로 전송 트리거
-    const secondEnterResult = await this.sendEnter(sessionName);
-    if (!secondEnterResult.success) {
-      return secondEnterResult;
-    }
-
-    // 3. 잠시 대기 (프롬프트가 처리될 시간)
+    // 2. 잠시 대기 (프롬프트가 처리될 시간)
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     logger.info('Prompt sent successfully');

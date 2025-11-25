@@ -470,22 +470,26 @@ export async function getSessionInfo(
  *
  * @param sessionName - Session name
  * @param text - Text to paste
+ * @param sendEnterAfter - Send Enter key after pasting (default: true)
  * @returns TmuxCommandResult
  *
  * 동작 방식:
  * 1. 임시 파일에 텍스트 저장
  * 2. tmux load-buffer로 버퍼에 로드
  * 3. tmux paste-buffer로 붙여넣기
- * 4. 임시 파일 삭제
+ * 4. (선택적) Enter 키 전송
+ * 5. 임시 파일 삭제
  *
  * 장점:
  * - Bracketed Paste Mode의 복잡한 escape sequence를 피할 수 있음
  * - 줄바꿈이 자연스럽게 처리됨
  * - tmux의 네이티브 기능을 사용하므로 더 안정적
+ * - 자동 Enter 전송으로 Claude Code 무한 대기 방지
  */
 export async function pasteText(
   sessionName: string,
-  text: string
+  text: string,
+  sendEnterAfter: boolean = true
 ): Promise<TmuxCommandResult> {
   const logger = getLogger();
   const fs = await import('fs');
@@ -515,6 +519,22 @@ export async function pasteText(
       `tmux paste-buffer -t ${sessionName} -d`
     );
 
+    if (!pasteResult.success) {
+      return pasteResult;
+    }
+
+    // 5. (선택적) Enter 키 전송 - Claude Code 무한 대기 방지
+    if (sendEnterAfter) {
+      logger.debug('Sending Enter key after paste to prevent infinite waiting');
+      // paste 작업이 완전히 완료될 때까지 대기
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const enterResult = await sendEnter(sessionName);
+      if (!enterResult.success) {
+        logger.warn(`Failed to send Enter after paste: ${enterResult.error}`);
+      }
+    }
+
     return pasteResult;
   } catch (error) {
     logger.error(`Failed to paste text: ${error}`);
@@ -524,7 +544,7 @@ export async function pasteText(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   } finally {
-    // 5. 임시 파일 삭제
+    // 6. 임시 파일 삭제
     try {
       if (fs.existsSync(tmpFile)) {
         fs.unlinkSync(tmpFile);
