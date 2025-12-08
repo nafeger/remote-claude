@@ -59,13 +59,13 @@
   - [x] 1.6 `src/tmux/executor.ts` sendSpace() 함수 구현 및 executeCommandSequence()에 Space 키 케이스 추가
   - [x] 1.7 DSL Space 키 통합 테스트 실행 및 검증
 
-- [ ] 2.0 파일 검증 유틸리티 구현 (FR-2, FR-3)
-  - [ ] 2.1 `src/utils/file-validator.ts` 파일 생성 및 기본 인터페이스 정의
-  - [ ] 2.2 파일 타입 검증 테스트 작성 (PNG/JPG/JPEG 성공, GIF/WebP/SVG 실패, 텍스트 파일 성공, 확장자 없는 경우)
-  - [ ] 2.3 validateFileType() 함수 구현 (MIME type 검증, 이미지/텍스트 구분)
-  - [ ] 2.4 파일 크기 검증 테스트 작성 (1MB 성공, 5MB 정확히 성공, 5MB+1byte 실패, 0바이트)
-  - [ ] 2.5 validateFileSize() 함수 구현 (5MB 제한 검증)
-  - [ ] 2.6 파일 검증 유틸리티 단위 테스트 전체 실행 및 검증
+- [x] 2.0 파일 검증 유틸리티 구현 (FR-2, FR-3)
+  - [x] 2.1 `src/utils/file-validator.ts` 파일 생성 및 기본 인터페이스 정의
+  - [x] 2.2 파일 타입 검증 테스트 작성 (PNG/JPG/JPEG 성공, GIF/WebP/SVG 실패, 텍스트 파일 성공, 확장자 없는 경우)
+  - [x] 2.3 validateFileType() 함수 구현 (MIME type 검증, 이미지/텍스트 구분)
+  - [x] 2.4 파일 크기 검증 테스트 작성 (1MB 성공, 5MB 정확히 성공, 5MB+1byte 실패, 0바이트)
+  - [x] 2.5 validateFileSize() 함수 구현 (5MB 제한 검증)
+  - [x] 2.6 파일 검증 유틸리티 단위 테스트 전체 실행 및 검증
 
 - [ ] 3.0 파일 다운로드 유틸리티 구현 (FR-6, FR-7, FR-14)
   - [ ] 3.1 `src/utils/file-downloader.ts` 파일 생성 및 기본 인터페이스 정의
