@@ -9,7 +9,7 @@ import { getLogger } from '../utils/logger';
  * 키 타입 정의
  * Key type definition
  */
-export type KeyType = 'Right' | 'Left' | 'Up' | 'Down' | 'Enter';
+export type KeyType = 'Right' | 'Left' | 'Up' | 'Down' | 'Enter' | 'Space';
 
 /**
  * 키 명령 인터페이스
@@ -46,7 +46,7 @@ export interface ParseResult {
 }
 
 /**
- * 키 매핑 상수 (r, l, u, d, e → Right, Left, Up, Down, Enter)
+ * 키 매핑 상수 (r, l, u, d, e, s → Right, Left, Up, Down, Enter, Space)
  * Key mapping constant
  */
 export const KEY_MAPPING: Record<string, KeyType> = {
@@ -55,13 +55,14 @@ export const KEY_MAPPING: Record<string, KeyType> = {
   u: 'Up',
   d: 'Down',
   e: 'Enter',
+  s: 'Space',
 };
 
 /**
  * 키 매핑 문자 집합
  * Key mapping character set
  */
-export const KEY_CHARS = new Set<string>(['r', 'l', 'u', 'd', 'e']);
+export const KEY_CHARS = new Set<string>(['r', 'l', 'u', 'd', 'e', 's']);
 
 /**
  * 백틱 세그먼트 추출 정규식 패턴

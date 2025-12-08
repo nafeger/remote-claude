@@ -101,6 +101,43 @@ describe('parseInteractiveCommand()', () => {
         expect((segment as KeyCommand).key).toBe(expectedKeys[index]);
       });
     });
+
+    /**
+     * Task 1.3: Space 키 매핑 테스트 (FR-15)
+     * Space key mapping tests
+     */
+    it('should parse `s` to single Space key command', () => {
+      // Arrange
+      const input = '`s`';
+
+      // Act
+      const result: ParseResult = parseInteractiveCommand(input);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.segments).toHaveLength(1);
+      expect(result.segments[0].type).toBe('key');
+      expect((result.segments[0] as KeyCommand).key).toBe('Space');
+    });
+
+    it('should parse `dds` to Down, Down, Space sequence', () => {
+      // Arrange
+      const input = '`dds`';
+
+      // Act
+      const result: ParseResult = parseInteractiveCommand(input);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.segments).toHaveLength(3);
+
+      const expectedKeys: Array<'Down' | 'Space'> = ['Down', 'Down', 'Space'];
+
+      result.segments.forEach((segment: ParsedSegment, index: number) => {
+        expect(segment.type).toBe('key');
+        expect((segment as KeyCommand).key).toBe(expectedKeys[index]);
+      });
+    });
   });
 
   /**
@@ -253,6 +290,26 @@ describe('parseInteractiveCommand()', () => {
       expect(result.error?.message).toContain('백틱 내용이 애매합니다');
     });
 
+    /**
+     * Task 1.3: Space 키 혼합 문자 에러 테스트 (FR-15)
+     * Space key mixed character error test
+     */
+    it('should return error for mixed characters `sx`', () => {
+      // Arrange
+      const input = '`sx`';
+
+      // Act
+      const result: ParseResult = parseInteractiveCommand(input);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.segments).toHaveLength(0);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain('백틱 내용이 애매합니다');
+      expect(result.error?.message).toContain("'s'");
+      expect(result.error?.message).toContain("'x'");
+    });
+
     it('should stop parsing at first error in sequence', () => {
       // 첫 번째 백틱이 에러면 전체 파싱 실패
       // If first backtick has error, entire parsing fails
@@ -344,26 +401,28 @@ describe('isKeySequence()', () => {
 
 describe('Parser Constants', () => {
   describe('KEY_MAPPING', () => {
-    it('should map all 5 key characters correctly', () => {
+    it('should map all 6 key characters correctly', () => {
       expect(KEY_MAPPING.r).toBe('Right');
       expect(KEY_MAPPING.l).toBe('Left');
       expect(KEY_MAPPING.u).toBe('Up');
       expect(KEY_MAPPING.d).toBe('Down');
       expect(KEY_MAPPING.e).toBe('Enter');
+      expect(KEY_MAPPING.s).toBe('Space');
     });
 
-    it('should have exactly 5 entries', () => {
-      expect(Object.keys(KEY_MAPPING)).toHaveLength(5);
+    it('should have exactly 6 entries', () => {
+      expect(Object.keys(KEY_MAPPING)).toHaveLength(6);
     });
   });
 
   describe('KEY_CHARS', () => {
-    it('should contain all 5 key characters', () => {
+    it('should contain all 6 key characters', () => {
       expect(KEY_CHARS.has('r')).toBe(true);
       expect(KEY_CHARS.has('l')).toBe(true);
       expect(KEY_CHARS.has('u')).toBe(true);
       expect(KEY_CHARS.has('d')).toBe(true);
       expect(KEY_CHARS.has('e')).toBe(true);
+      expect(KEY_CHARS.has('s')).toBe(true);
     });
 
     it('should not contain non-key characters', () => {
@@ -372,8 +431,8 @@ describe('Parser Constants', () => {
       expect(KEY_CHARS.has('1')).toBe(false);
     });
 
-    it('should have exactly 5 entries', () => {
-      expect(KEY_CHARS.size).toBe(5);
+    it('should have exactly 6 entries', () => {
+      expect(KEY_CHARS.size).toBe(6);
     });
   });
 
@@ -400,6 +459,52 @@ describe('Parser Constants', () => {
       const matches = Array.from(input.matchAll(BACKTICK_PATTERN));
 
       expect(matches).toHaveLength(0);
+    });
+  });
+
+  /**
+   * Task 1.1: Space 키 타입 정의 테스트 (FR-15)
+   * Test Space key type definition
+   */
+  describe('Space 키 타입 정의 (FR-15)', () => {
+    /**
+     * Happy Path: KEY_MAPPING에 's' → 'Space' 매핑이 존재하는지 확인
+     */
+    it('should have s mapped to Space in KEY_MAPPING', () => {
+      // Assert
+      expect(KEY_MAPPING['s']).toBe('Space');
+    });
+
+    /**
+     * Happy Path: KEY_CHARS Set에 's'가 포함되는지 확인
+     */
+    it('should include s in KEY_CHARS', () => {
+      // Assert
+      expect(KEY_CHARS.has('s')).toBe(true);
+    });
+
+    /**
+     * Side Effects: 기존 키 매핑에 영향을 주지 않는지 확인
+     */
+    it('should not affect existing key mappings', () => {
+      // Assert - 기존 키 매핑이 유지되는지 확인
+      expect(KEY_MAPPING['r']).toBe('Right');
+      expect(KEY_MAPPING['l']).toBe('Left');
+      expect(KEY_MAPPING['u']).toBe('Up');
+      expect(KEY_MAPPING['d']).toBe('Down');
+      expect(KEY_MAPPING['e']).toBe('Enter');
+    });
+
+    /**
+     * Side Effects: 기존 KEY_CHARS에 영향을 주지 않는지 확인
+     */
+    it('should not affect existing KEY_CHARS', () => {
+      // Assert - 기존 키 문자가 유지되는지 확인
+      expect(KEY_CHARS.has('r')).toBe(true);
+      expect(KEY_CHARS.has('l')).toBe(true);
+      expect(KEY_CHARS.has('u')).toBe(true);
+      expect(KEY_CHARS.has('d')).toBe(true);
+      expect(KEY_CHARS.has('e')).toBe(true);
     });
   });
 });

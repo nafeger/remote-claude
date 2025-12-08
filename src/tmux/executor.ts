@@ -296,6 +296,24 @@ export async function sendEscape(sessionName: string): Promise<TmuxCommandResult
 }
 
 /**
+ * tmux 세션에 Space 키 전송
+ * Send Space key to tmux session
+ *
+ * @param sessionName - Session name
+ * @returns TmuxCommandResult
+ *
+ * 사용 예시 (Usage examples):
+ * - sendSpace('my-session') → Space 키 전송 (FR-15)
+ */
+export async function sendSpace(sessionName: string): Promise<TmuxCommandResult> {
+  const logger = getLogger();
+  logger.debug(`Sending Space key to session ${sessionName}`);
+
+  const command = `tmux send-keys -t ${sessionName} Space`;
+  return executeTmuxCommand(command);
+}
+
+/**
  * 파싱된 명령 시퀀스를 순차적으로 실행
  * Execute parsed command sequence sequentially
  *
@@ -333,10 +351,12 @@ export async function executeCommandSequence(
     const command = commands[i];
 
     if (command.type === 'key') {
-      // 키 명령: 방향키 또는 Enter
-      // Key command: arrow keys or Enter
+      // 키 명령: 방향키, Enter, 또는 Space
+      // Key command: arrow keys, Enter, or Space
       if (command.key === 'Enter') {
         lastResult = await sendEnter(sessionName);
+      } else if (command.key === 'Space') {
+        lastResult = await sendSpace(sessionName);
       } else {
         lastResult = await sendArrowKey(sessionName, command.key);
       }

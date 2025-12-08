@@ -6,9 +6,10 @@
  * - sendArrowKey() - 방향키 전송 함수
  * - executeCommandSequence() - 명령 시퀀스 실행
  * - sendKeys() - 키 입력 전송 함수
+ * - sendSpace() - Space 키 전송 함수 (FR-15)
  */
 
-import { sendArrowKey, executeCommandSequence, sendEnter, sendEnterMultiple, sendKeys } from '../executor';
+import { sendArrowKey, executeCommandSequence, sendEnter, sendEnterMultiple, sendKeys, sendSpace } from '../executor';
 import { initLogger, clearLoggerInstance } from '../../utils/logger';
 import { LogLevel } from '../../types';
 import { ParsedSegment } from '../../dsl/parser';
@@ -665,6 +666,136 @@ describe('sendEnterMultiple()', () => {
       const result2 = await sendEnterMultiple(session2, 2);
       expect(result2.success).toBe(true);
       expect(mockedExec).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+/**
+ * Task 1.5: sendSpace() 테스트 - Space 키 전송 (FR-15)
+ * Tests for sendSpace() - Send Space key
+ */
+describe('sendSpace()', () => {
+  /**
+   * 정상 경로 - Space 키 성공적으로 전송
+   * Happy Path - Successfully send Space key
+   */
+  describe('정상 경로 (Happy Path)', () => {
+    it('should successfully send Space key', async () => {
+      // Arrange
+      const sessionName = 'test-session';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      // Act
+      const result = await sendSpace(sessionName);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(mockedExec).toHaveBeenCalledTimes(1);
+
+      const callArgs = mockedExec.mock.calls[0][0];
+      expect(callArgs).toContain('tmux send-keys');
+      expect(callArgs).toContain('-t test-session');
+      expect(callArgs).toContain('Space');
+    });
+  });
+
+  /**
+   * 경계 조건 - 다양한 세션 이름
+   * Boundary Conditions - Various session names
+   */
+  describe('경계 조건 (Boundary Conditions)', () => {
+    it('should handle different session names', async () => {
+      const sessionNames = ['my-session', 'test-123', 'session_name'];
+
+      for (const sessionName of sessionNames) {
+        jest.clearAllMocks();
+
+        mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+          callback(null, { stdout: '', stderr: '' });
+          return {} as any;
+        });
+
+        const result = await sendSpace(sessionName);
+
+        expect(result.success).toBe(true);
+        const callArgs = mockedExec.mock.calls[0][0];
+        expect(callArgs).toContain(`-t ${sessionName}`);
+        expect(callArgs).toContain('Space');
+      }
+    });
+  });
+
+  /**
+   * 예외 케이스 - tmux 명령 실패 처리
+   * Exception Cases - Handle tmux command failure
+   */
+  describe('예외 케이스 (Exception Cases)', () => {
+    it('should handle non-existent session error', async () => {
+      const sessionName = 'non-existent-session';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        const error = new Error("can't find session: non-existent-session");
+        callback(error, { stdout: '', stderr: "can't find session" });
+        return {} as any;
+      });
+
+      const result = await sendSpace(sessionName);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error).toContain("can't find session");
+    });
+
+    it('should handle tmux command timeout', async () => {
+      const sessionName = 'test-session';
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        const error = new Error('Command timed out');
+        (error as any).killed = true;
+        callback(error, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      const result = await sendSpace(sessionName);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error).toContain('timed out');
+    });
+  });
+
+  /**
+   * 부작용 검증 - 입력 파라미터 수정 없음
+   * Side Effects - Do not modify input parameters
+   */
+  describe('부작용 검증 (Side Effects)', () => {
+    it('should not modify input parameters', async () => {
+      const sessionName = 'test-session';
+      const originalSessionName = sessionName;
+
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      await sendSpace(sessionName);
+
+      expect(sessionName).toBe(originalSessionName);
+    });
+
+    it('should call exec exactly once per invocation', async () => {
+      mockedExec.mockImplementation((_cmd: string, _options: any, callback: any) => {
+        callback(null, { stdout: '', stderr: '' });
+        return {} as any;
+      });
+
+      await sendSpace('test-session');
+
+      expect(mockedExec).toHaveBeenCalledTimes(1);
     });
   });
 });
