@@ -8,21 +8,41 @@
 ## [Unreleased]
 
 ### Added
+- Slack 파일 첨부 기능 (v0.3.0)
+  - PNG/JPG/JPEG 이미지 파일 지원
+  - 텍스트 파일 (.txt, .log, .md 등) 지원
+  - 파일 타입 및 크기 검증 (최대 5MB)
+  - Slack 파일 다운로드 및 임시 저장
+  - Job 완료 시 임시 파일 자동 정리
+  - 파일 첨부 핸들러 및 에러 처리
+- DSL Space 키 지원 (v0.3.0)
+  - `` `s` `` 문법으로 Space 키 전송
+  - 다른 키와 조합 가능 (예: `` `dds` `` → Down+Down+Space)
 - 오픈소스 공개를 위한 필수 파일 추가
   - LICENSE 파일 (ISC 라이선스)
   - CODE_OF_CONDUCT.md (행동 강령)
   - CONTRIBUTING.md (기여 가이드)
   - THIRD-PARTY-LICENSES.md (서드파티 라이선스)
   - CHANGELOG.md (변경 이력)
+  - TESTING_GUIDE.md (파일 첨부 및 DSL Space 키 테스트 가이드)
 
 ### Changed
 - package.json에 author 필드 추가
 - README.md 라이선스 섹션 업데이트
+- Job 인터페이스에 attachedFilePath 필드 추가
+- 메시지 이벤트 리스너에 파일 첨부 감지 로직 추가
 
 ### Fixed
+- 파일 첨부 메시지 처리 순서 수정
+  - 문제: message.subtype 필터가 file_share 이벤트를 조기 차단
+  - 해결: 파일 첨부 체크를 subtype 필터보다 먼저 수행하도록 순서 변경
+  - 영향: files 배열이 있는 메시지가 정상적으로 처리됨
 - tmux paste-buffer를 사용하여 멀티라인 메시지 Enter 인식 문제 해결
   - Bracketed Paste Mode 대신 tmux 네이티브 기능 사용
   - 줄바꿈이 올바르게 보존되도록 개선
+
+### Security
+- Slack files:read 권한 추가 필요 (파일 다운로드를 위해)
 
 ## [0.2.0] - 2025-11-07
 
